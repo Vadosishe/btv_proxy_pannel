@@ -157,15 +157,60 @@ async def test_node_connection(node_id: int, db: Session = Depends(get_db), _: U
                 amnezia_error = str(e)
 
 
-    return {
-        "node_id": node.id,
-        "name": node.name,
-        "node_type": str(node.node_type),
-        "xui_connected": xui_status,
-        "xui_error": xui_error,
-        "amnezia_connected": amnezia_status,
-        "amnezia_error": amnezia_error
-    }
+@router.post("/keys/create")
+async def create_key_as_superadmin(
+    agency_id: int,
+    employee_name: str,
+    protocol: ProtocolType,
+    node_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_superadmin)
+):
+    from app.models import Agency, Node, ClientKey
+    from app.services.amnezia import AmneziaClient
+    from app.services.xui import XUIClient
+    from app.config import settings
+
+    agency = db.query(Agency).get(agency_id)
+    if not agency:
+        raise HTTPException(status_code=404, detail="Agency not found")
+
+    node = db.query(Node).get(node_id)
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    config_content = ""
+    remote_id = None
+
+    if protocol == ProtocolType.AMNEZIA_WG:
+        amnezia_target_url = node.amnezia_url or settings.AMNEZIA_API_URL
+        amnezia = AmneziaClient(amnezia_target_url, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
+        res = await amnezia.create_awg_client(node.amnezia_server_id or 1, employee_name)
+        config_content = res["vpn_link"]
+        remote_id = res["client_id"]
+
+    elif protocol == ProtocolType.VLESS:
+        if not node.xui_url or not node.xui_inbound_id:
+            raise HTTPException(status_code=400, detail="Node is not configured for VLESS / 3X-UI")
+
+        xui = XUIClient(node.xui_url, username=node.xui_username, password=node.xui_password, api_token=node.xui_api_token)
+        res = await xui.add_vless_client(node.xui_inbound_id, employee_name, group_name=agency.name)
+        config_content = res["vless_link"]
+        remote_id = res["client_id"]
+
+    client_key = ClientKey(
+        agency_id=agency.id,
+        node_id=node.id,
+        employee_name=employee_name,
+        protocol=protocol,
+        config_content=config_content,
+        remote_client_id=remote_id
+    )
+    db.add(client_key)
+    db.commit()
+    db.refresh(client_key)
+    return client_key
+
 
 
 

@@ -195,7 +195,9 @@
         <div id="tabGlobalKeys" class="card hidden">
             <div class="card-header">
                 <h2>Все выпущенные ключи сотрудников (Все агентства)</h2>
+                <button onclick="showCreateKeyModal()" style="width: auto;">+ Выпустить новый ключ</button>
             </div>
+
 
             <div class="filters-bar">
                 <input type="text" id="searchKeysInput" class="filter-input" placeholder="🔍 Поиск по имени сотрудника или UUID..." oninput="filterGlobalKeys()">
@@ -240,6 +242,12 @@
     <!-- CREATE KEY MODAL -->
     <div id="createKeyModal" class="card hidden" style="max-width: 500px; margin: 20px auto;">
         <h2>Выпуск нового ключа</h2>
+        
+        <div id="superadminAgencySelectGroup" class="hidden">
+            <label>Компания / Агентство</label>
+            <select id="keyAgencyId"></select>
+        </div>
+
         <label>Имя сотрудника / Устройство</label>
         <input type="text" id="keyEmployeeName" placeholder="Иванов Иван (Ноутбук)">
         
@@ -249,14 +257,15 @@
             <option value="vless">VLESS (Reality)</option>
         </select>
 
-        <label>Локация сервера</label>
+        <label>Локация сервера (Нода)</label>
         <select id="keyNodeId"></select>
 
-        <div class="actions-flex">
+        <div class="actions-flex" style="margin-top: 16px;">
             <button onclick="submitCreateKey()">Выпустить ключ</button>
             <button onclick="hideCreateKeyModal()" class="btn-secondary">Отмена</button>
         </div>
     </div>
+
 
     <!-- ADD NODE MODAL -->
     <div id="addNodeModal" class="card hidden" style="max-width: 550px; margin: 20px auto;">
@@ -604,12 +613,26 @@
 
     async function showCreateKeyModal() {
         const headers = { "Authorization": `Bearer ${token}` };
+        
+        if (userRole === "superadmin") {
+            document.getElementById("superadminAgencySelectGroup").classList.remove("hidden");
+            const resAgencies = await fetch(`${API_BASE}/admin/agencies`, { headers });
+            if (resAgencies.ok) {
+                const agencies = await resAgencies.json();
+                const selectAgency = document.getElementById("keyAgencyId");
+                selectAgency.innerHTML = "";
+                agencies.forEach(a => selectAgency.innerHTML += `<option value="${a.id}">${a.name}</option>`);
+            }
+        } else {
+            document.getElementById("superadminAgencySelectGroup").classList.add("hidden");
+        }
+
         const resNodes = await fetch(`${API_BASE}/admin/nodes`, { headers });
         if (resNodes.ok) {
             const nodes = await resNodes.json();
-            const select = document.getElementById("keyNodeId");
-            select.innerHTML = "";
-            nodes.forEach(n => select.innerHTML += `<option value="${n.id}">${n.name} (${n.location})</option>`);
+            const selectNode = document.getElementById("keyNodeId");
+            selectNode.innerHTML = "";
+            nodes.forEach(n => selectNode.innerHTML += `<option value="${n.id}">${n.name} (${n.location})</option>`);
         }
         document.getElementById("createKeyModal").classList.remove("hidden");
     }
@@ -617,21 +640,48 @@
     function hideCreateKeyModal() { document.getElementById("createKeyModal").classList.add("hidden"); }
 
     async function submitCreateKey() {
-        const headers = { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" };
-        const payload = {
-            employee_name: document.getElementById("keyEmployeeName").value,
-            protocol: document.getElementById("keyProtocol").value,
-            node_id: parseInt(document.getElementById("keyNodeId").value)
-        };
-        const res = await fetch(`${API_BASE}/agency/keys/create`, { method: "POST", headers, body: JSON.stringify(payload) });
-        if (res.ok) {
-            hideCreateKeyModal();
-            loadAgencyData();
-        } else {
-            const err = await res.json();
-            alert(err.detail || "Ошибка выпуска ключа!");
+        try {
+            const headers = { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" };
+            const employeeName = document.getElementById("keyEmployeeName").value;
+            const protocol = document.getElementById("keyProtocol").value;
+            const nodeId = parseInt(document.getElementById("keyNodeId").value);
+
+            if (!employeeName) {
+                alert("Пожалуйста, введите имя сотрудника");
+                return;
+            }
+            if (!nodeId) {
+                alert("Пожалуйста, выберите серверную ноду");
+                return;
+            }
+
+            let res;
+            if (userRole === "superadmin") {
+                const agencyId = parseInt(document.getElementById("keyAgencyId").value);
+                res = await fetch(`${API_BASE}/admin/keys/create?agency_id=${agencyId}&employee_name=${encodeURIComponent(employeeName)}&protocol=${protocol}&node_id=${nodeId}`, { method: "POST", headers });
+            } else {
+                const payload = { employee_name: employeeName, protocol: protocol, node_id: nodeId };
+                res = await fetch(`${API_BASE}/agency/keys/create`, { method: "POST", headers, body: JSON.stringify(payload) });
+            }
+
+            if (res.ok) {
+                hideCreateKeyModal();
+                if (userRole === "superadmin") {
+                    loadGlobalKeys();
+                    loadSuperadminAgencies();
+                } else {
+                    loadAgencyData();
+                }
+                alert("Ключ успешно выпущен!");
+            } else {
+                const errData = await res.json();
+                alert("Ошибка выпуска ключа: " + (errData.detail || JSON.stringify(errData)));
+            }
+        } catch (err) {
+            alert("Ошибка сети или сервера: " + err.message);
         }
     }
+
 
     async function revokeKey(keyId) {
         if (!confirm("Вы уверены, что хотите отозвать доступ?")) return;
