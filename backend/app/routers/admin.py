@@ -150,10 +150,12 @@ async def test_node_connection(node_id: int, db: Session = Depends(get_db), _: U
             try:
                 from app.services.amnezia import AmneziaClient
                 from app.config import settings
-                amnezia = AmneziaClient(settings.AMNEZIA_API_URL, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
+                amnezia_target_url = node.amnezia_url or settings.AMNEZIA_API_URL
+                amnezia = AmneziaClient(amnezia_target_url, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
                 amnezia_status = await amnezia.login()
             except Exception as e:
                 amnezia_error = str(e)
+
 
     return {
         "node_id": node.id,

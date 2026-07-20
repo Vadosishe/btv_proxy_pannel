@@ -63,10 +63,12 @@ async def create_client_key(
             raise HTTPException(status_code=400, detail=f"AmneziaWG key quota limit ({agency.quota_awg}) reached!")
         
         # Call amneziavpnphp API
-        amnezia = AmneziaClient(settings.AMNEZIA_API_URL, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
+        amnezia_target_url = node.amnezia_url or settings.AMNEZIA_API_URL
+        amnezia = AmneziaClient(amnezia_target_url, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
         res = await amnezia.create_awg_client(node.amnezia_server_id or 1, payload.employee_name)
         config_content = res["vpn_link"]
         remote_id = res["client_id"]
+
 
     elif payload.protocol == ProtocolType.VLESS:
         if len(existing_keys) >= agency.quota_vless:

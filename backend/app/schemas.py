@@ -50,6 +50,7 @@ class NodeCreate(BaseModel):
     xui_username: Optional[str] = None
     xui_password: Optional[str] = None
     xui_inbound_id: Optional[int] = None
+    amnezia_url: Optional[str] = None
     amnezia_server_id: Optional[int] = None
 
 class NodeResponse(BaseModel):
@@ -59,11 +60,13 @@ class NodeResponse(BaseModel):
     node_type: str
     xui_url: Optional[str]
     xui_inbound_id: Optional[int]
+    amnezia_url: Optional[str]
     amnezia_server_id: Optional[int]
     created_at: datetime
 
     class Config:
         from_attributes = True
+
 
 
 class ClientKeyCreate(BaseModel):

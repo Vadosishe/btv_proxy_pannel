@@ -297,9 +297,13 @@
 
         <!-- AMNEZIA SPECIFIC FIELDS -->
         <div id="amneziaFields" class="hidden">
-            <label>AmneziaWG Server ID (из мастер-панели amneziavpnphp)</label>
+            <label>Amnezia Master Panel URL (Панель управления AmneziaWG)</label>
+            <input type="text" id="nodeAmneziaUrl" placeholder="http://5.129.229.25:8082">
+
+            <label>AmneziaWG Server ID (из мастер-панели)</label>
             <input type="number" id="nodeAmneziaId" placeholder="1">
         </div>
+
 
         <div class="actions-flex" style="margin-top: 16px;">
             <button onclick="submitAddNode()">Подключить Ноду</button>
@@ -512,7 +516,7 @@
                 const typeLabel = n.node_type === "xui" ? "⚡ 3X-UI (VLESS)" : "🔒 AmneziaWG v2";
                 const details = n.node_type === "xui" 
                     ? `<div><strong>3X-UI Server URL:</strong> ${n.xui_url || 'N/A'} (Inbound ID: ${n.xui_inbound_id || '-'})</div>`
-                    : `<div><strong>AmneziaWG Server ID:</strong> ${n.amnezia_server_id || '1'} (управляется через amneziavpnphp)</div>`;
+                    : `<div><strong>Amnezia Master URL:</strong> ${n.amnezia_url || 'http://5.129.229.25:8082'} (Server ID: ${n.amnezia_server_id || '1'})</div>`;
 
                 grid.innerHTML += `
                     <div class="node-card">
@@ -579,6 +583,7 @@
                 xui_username: nodeType === "xui" ? document.getElementById("nodeXuiUser").value : null,
                 xui_password: nodeType === "xui" ? document.getElementById("nodeXuiPass").value : null,
                 xui_inbound_id: nodeType === "xui" ? (parseInt(document.getElementById("nodeInboundId").value) || null) : null,
+                amnezia_url: nodeType === "amnezia" ? document.getElementById("nodeAmneziaUrl").value : null,
                 amnezia_server_id: nodeType === "amnezia" ? (parseInt(document.getElementById("nodeAmneziaId").value) || 1) : null
             };
             const res = await fetch(`${API_BASE}/admin/nodes`, { method: "POST", headers, body: JSON.stringify(payload) });
