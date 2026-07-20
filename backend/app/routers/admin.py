@@ -117,12 +117,49 @@ def list_all_keys(db: Session = Depends(get_db), _: User = Depends(require_super
         })
     return result
 
-@router.delete("/agencies/{agency_id}")
-def delete_agency(agency_id: int, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
-    agency = db.query(Agency).get(agency_id)
-    if not agency:
-        raise HTTPException(status_code=404, detail="Agency not found")
-    db.delete(agency)
+@router.delete("/nodes/{node_id}")
+def delete_node(node_id: int, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    node = db.query(Node).get(node_id)
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    db.delete(node)
     db.commit()
-    return {"detail": "Agency deleted successfully"}
+    return {"detail": "Node deleted successfully"}
+
+@router.post("/nodes/{node_id}/test")
+async def test_node_connection(node_id: int, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    node = db.query(Node).get(node_id)
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    xui_status = False
+    xui_error = None
+    if node.xui_url:
+        try:
+            from app.services.xui import XUIClient
+            xui = XUIClient(node.xui_url, node.xui_username, node.xui_password)
+            xui_status = await xui.login()
+        except Exception as e:
+            xui_error = str(e)
+
+    amnezia_status = False
+    amnezia_error = None
+    if node.amnezia_server_id:
+        try:
+            from app.services.amnezia import AmneziaClient
+            from app.config import settings
+            amnezia = AmneziaClient(settings.AMNEZIA_API_URL, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
+            amnezia_status = await amnezia.login()
+        except Exception as e:
+            amnezia_error = str(e)
+
+    return {
+        "node_id": node.id,
+        "name": node.name,
+        "xui_connected": xui_status,
+        "xui_error": xui_error,
+        "amnezia_connected": amnezia_status,
+        "amnezia_error": amnezia_error
+    }
+
 
