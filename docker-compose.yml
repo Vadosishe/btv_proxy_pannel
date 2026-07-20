@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: b2b-vpn-db
+    restart: always
+    environment:
+      POSTGRES_DB: b2b_vpn
+      POSTGRES_USER: vpn_user
+      POSTGRES_PASSWORD: vpn_password_secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: b2b-vpn-backend
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://vpn_user:vpn_password_secret@postgres:5432/b2b_vpn
+      JWT_SECRET: b2b_vpn_super_secret_jwt_key_2026
+      AMNEZIA_API_URL: http://amnezia-panel:8082
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
