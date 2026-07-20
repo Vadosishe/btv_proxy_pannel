@@ -99,9 +99,12 @@ def list_users(db: Session = Depends(get_db), _: User = Depends(require_superadm
     return db.query(User).all()
 
 @router.get("/keys")
-def list_all_keys(db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+async def list_all_keys(db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
     from app.models import ClientKey
+    from app.services.sync_service import sync_remote_amnezia_keys
+    await sync_remote_amnezia_keys(db)
     keys = db.query(ClientKey).all()
+
     result = []
     for k in keys:
         result.append({

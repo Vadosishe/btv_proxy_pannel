@@ -38,8 +38,11 @@ def get_my_agency(db: Session = Depends(get_db), current_user: User = Depends(re
     )
 
 @router.get("/keys", response_model=List[ClientKeyResponse])
-def list_my_keys(db: Session = Depends(get_db), current_user: User = Depends(require_agency)):
+async def list_my_keys(db: Session = Depends(get_db), current_user: User = Depends(require_agency)):
+    from app.services.sync_service import sync_remote_amnezia_keys
+    await sync_remote_amnezia_keys(db)
     return db.query(ClientKey).filter(ClientKey.agency_id == current_user.agency_id).all()
+
 
 @router.post("/keys/create", response_model=ClientKeyResponse)
 async def create_client_key(
@@ -103,16 +106,21 @@ async def revoke_key(key_id: int, db: Session = Depends(get_db), current_user: U
     if not key:
         raise HTTPException(status_code=404, detail="Key not found")
     
-    # Remote deletion on node if VLESS
-    if key.protocol == ProtocolType.VLESS and key.node:
+    # Remote deletion on node if AWG or VLESS
+    if key.node:
         node = key.node
-        if node.xui_url and node.xui_inbound_id:
-            xui = XUIClient(node.xui_url, node.xui_username, node.xui_password)
+        if key.protocol == ProtocolType.AMNEZIA_WG and key.remote_client_id:
+            amnezia_target_url = node.amnezia_url or settings.AMNEZIA_API_URL
+            amnezia = AmneziaClient(amnezia_target_url, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
+            await amnezia.delete_awg_client(key.remote_client_id)
+        elif key.protocol == ProtocolType.VLESS and node.xui_url and node.xui_inbound_id:
+            xui = XUIClient(node.xui_url, username=node.xui_username, password=node.xui_password, api_token=node.xui_api_token)
             await xui.delete_client(node.xui_inbound_id, key.remote_client_id, email=f"{key.employee_name}_{key.remote_client_id[:6] if key.remote_client_id else ''}")
 
     db.delete(key)
     db.commit()
     return {"detail": "Key revoked successfully"}
+
 
 
 @router.get("/export/zip")
