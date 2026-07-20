@@ -538,23 +538,33 @@
     }
 
     async function submitAddNode() {
-        const headers = { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" };
-        const nodeType = document.getElementById("nodeTypeSelect").value;
-        const payload = {
-            name: document.getElementById("nodeName").value,
-            location: document.getElementById("nodeLocation").value,
-            node_type: nodeType,
-            xui_url: nodeType === "xui" ? document.getElementById("nodeXuiUrl").value : null,
-            xui_api_token: nodeType === "xui" ? document.getElementById("nodeXuiToken").value : null,
-            xui_username: nodeType === "xui" ? document.getElementById("nodeXuiUser").value : null,
-            xui_password: nodeType === "xui" ? document.getElementById("nodeXuiPass").value : null,
-            xui_inbound_id: nodeType === "xui" ? (parseInt(document.getElementById("nodeInboundId").value) || null) : null,
-            amnezia_server_id: nodeType === "amnezia" ? (parseInt(document.getElementById("nodeAmneziaId").value) || 1) : null
-        };
-        await fetch(`${API_BASE}/admin/nodes`, { method: "POST", headers, body: JSON.stringify(payload) });
-        hideAddNodeModal();
-        loadNodes();
+        try {
+            const headers = { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" };
+            const nodeType = document.getElementById("nodeTypeSelect").value;
+            const payload = {
+                name: document.getElementById("nodeName").value,
+                location: document.getElementById("nodeLocation").value,
+                node_type: nodeType,
+                xui_url: nodeType === "xui" ? document.getElementById("nodeXuiUrl").value : null,
+                xui_api_token: nodeType === "xui" ? document.getElementById("nodeXuiToken").value : null,
+                xui_username: nodeType === "xui" ? document.getElementById("nodeXuiUser").value : null,
+                xui_password: nodeType === "xui" ? document.getElementById("nodeXuiPass").value : null,
+                xui_inbound_id: nodeType === "xui" ? (parseInt(document.getElementById("nodeInboundId").value) || null) : null,
+                amnezia_server_id: nodeType === "amnezia" ? (parseInt(document.getElementById("nodeAmneziaId").value) || 1) : null
+            };
+            const res = await fetch(`${API_BASE}/admin/nodes`, { method: "POST", headers, body: JSON.stringify(payload) });
+            if (res.ok) {
+                hideAddNodeModal();
+                loadNodes();
+            } else {
+                const errData = await res.json();
+                alert("Ошибка добавления ноды: " + (errData.detail || JSON.stringify(errData)));
+            }
+        } catch (err) {
+            alert("Ошибка сети или скрипта: " + err.message);
+        }
     }
+
 
 
     async function showCreateKeyModal() {
