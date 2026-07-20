@@ -46,16 +46,47 @@ class AmneziaClient:
 
         if resp.status_code == 200:
             data = resp.json()
-            raw_conf = data.get("config", "")
-            vpn_uri = data.get("vpn_link") or self._format_vpn_uri(raw_conf)
+            client_obj = data.get("client", data)
+            raw_conf = client_obj.get("config", "")
+            vpn_uri = client_obj.get("vpn_link") or self._format_vpn_uri(raw_conf)
             return {
-                "client_id": str(data.get("id")),
+                "client_id": str(client_obj.get("id")),
                 "conf_content": raw_conf,
                 "vpn_link": vpn_uri
             }
+
         raise Exception(f"Failed to create AmneziaWG client: {resp.text}")
 
+    async def delete_awg_client(self, client_id: str) -> bool:
+        """Deletes/revokes an AmneziaWG client on amneziavpnphp."""
+        if not self.token:
+            await self.login()
+
+        headers = {"Authorization": f"Bearer {self.token}"}
+        resp = await self.client.delete(
+            f"{self.base_url}/api/clients/{client_id}/delete",
+            headers=headers,
+            timeout=15.0
+        )
+        return resp.status_code == 200
+
+    async def list_server_clients(self, server_id: int) -> Dict[str, Any]:
+        """Gets active clients list for a server from amneziavpnphp."""
+        if not self.token:
+            await self.login()
+
+        headers = {"Authorization": f"Bearer {self.token}"}
+        resp = await self.client.get(
+            f"{self.base_url}/api/servers/{server_id}/clients",
+            headers=headers,
+            timeout=15.0
+        )
+        if resp.status_code == 200:
+            return resp.json()
+        return {}
+
     def _format_vpn_uri(self, raw_conf: str) -> str:
+
         """Converts raw Amnezia WireGuard config string to vpn:// URI format if not provided directly."""
         compressed = zlib.compress(raw_conf.encode('utf-8'))
         b64 = base64.urlsafe_b64encode(compressed).decode('utf-8').rstrip('=')
