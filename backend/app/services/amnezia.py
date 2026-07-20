@@ -16,12 +16,13 @@ class AmneziaClient:
     async def login(self) -> bool:
         resp = await self.client.post(
             f"{self.base_url}/api/auth/token",
-            json={"email": self.email, "password": self.password}
+            data={"email": self.email, "password": self.password}
         )
         if resp.status_code == 200:
             self.token = resp.json().get("token")
             return True
         return False
+
 
     async def create_awg_client(self, server_id: int, employee_name: str) -> Dict[str, Any]:
         """Creates an AmneziaWG v2 client on amneziavpnphp."""
