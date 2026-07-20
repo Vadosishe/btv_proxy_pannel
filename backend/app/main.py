@@ -30,7 +30,7 @@ app.include_router(admin.router)
 app.include_router(agency.router)
 app.include_router(client_portal.router)
 
-FRONTEND_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend"))
+FRONTEND_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend"))
 
 @app.get("/")
 def serve_dashboard():
