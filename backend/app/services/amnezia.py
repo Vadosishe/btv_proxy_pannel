@@ -85,7 +85,23 @@ class AmneziaClient:
             return resp.json()
         return {}
 
+    async def get_client_details(self, client_id: str) -> Dict[str, Any]:
+        """Gets client details including config and vpn_link from amneziavpnphp."""
+        if not self.token:
+            await self.login()
+
+        headers = {"Authorization": f"Bearer {self.token}"}
+        resp = await self.client.get(
+            f"{self.base_url}/api/clients/{client_id}/details",
+            headers=headers,
+            timeout=15.0
+        )
+        if resp.status_code == 200:
+            return resp.json()
+        return {}
+
     def _format_vpn_uri(self, raw_conf: str) -> str:
+
 
         """Converts raw Amnezia WireGuard config string to vpn:// URI format if not provided directly."""
         compressed = zlib.compress(raw_conf.encode('utf-8'))
