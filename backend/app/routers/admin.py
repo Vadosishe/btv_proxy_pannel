@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, UserRole, Agency, Node, BlackholeEntry
+from app.models import User, UserRole, Agency, Node, BlackholeEntry, ProtocolType
 from app.schemas import (
     AgencyCreate, AgencyResponse,
     UserCreate, UserResponse,
