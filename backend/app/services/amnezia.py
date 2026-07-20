@@ -10,13 +10,14 @@ class AmneziaClient:
         self.base_url = base_url.rstrip('/')
         self.email = email
         self.password = password
-        self.client = httpx.AsyncClient(timeout=10.0)
+        self.client = httpx.AsyncClient(timeout=120.0)
         self.token = None
 
     async def login(self) -> bool:
         resp = await self.client.post(
             f"{self.base_url}/api/auth/token",
-            data={"email": self.email, "password": self.password}
+            data={"email": self.email, "password": self.password},
+            timeout=120.0
         )
         if resp.status_code == 200:
             self.token = resp.json().get("token")
@@ -32,15 +33,16 @@ class AmneziaClient:
         headers = {"Authorization": f"Bearer {self.token}"}
         payload = {
             "server_id": server_id,
-            "name": employee_name,
-            "protocol_id": "awg2"
+            "name": employee_name
         }
 
         resp = await self.client.post(
             f"{self.base_url}/api/clients/create",
             json=payload,
-            headers=headers
+            headers=headers,
+            timeout=120.0
         )
+
 
         if resp.status_code == 200:
             data = resp.json()

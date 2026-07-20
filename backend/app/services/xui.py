@@ -31,7 +31,7 @@ class XUIClient:
         self.username = username
         self.password = password
         self.api_token = api_token
-        self.session = httpx.AsyncClient(timeout=10.0, verify=False)
+        self.session = httpx.AsyncClient(timeout=30.0, verify=False)
         self.cookies = {}
 
     async def login(self) -> bool:
