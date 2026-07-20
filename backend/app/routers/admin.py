@@ -94,6 +94,35 @@ def add_blackhole_entry(payload: BlackholeCreate, db: Session = Depends(get_db),
     db.refresh(entry)
     return entry
 
-@router.get("/blackhole", response_model=List[BlackholeResponse])
-def list_blackhole(db: Session = Depends(get_db), _: User = Depends(get_current_user)):
-    return db.query(BlackholeEntry).all()
+@router.get("/users", response_model=List[UserResponse])
+def list_users(db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    return db.query(User).all()
+
+@router.get("/keys")
+def list_all_keys(db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    from app.models import ClientKey
+    keys = db.query(ClientKey).all()
+    result = []
+    for k in keys:
+        result.append({
+            "id": k.id,
+            "secret_uuid": k.secret_uuid,
+            "agency_id": k.agency_id,
+            "agency_name": k.agency.name if k.agency else "N/A",
+            "employee_name": k.employee_name,
+            "protocol": k.protocol.value,
+            "node_name": k.node.name if k.node else "N/A",
+            "config_content": k.config_content,
+            "created_at": k.created_at.strftime("%Y-%m-%d %H:%M")
+        })
+    return result
+
+@router.delete("/agencies/{agency_id}")
+def delete_agency(agency_id: int, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    agency = db.query(Agency).get(agency_id)
+    if not agency:
+        raise HTTPException(status_code=404, detail="Agency not found")
+    db.delete(agency)
+    db.commit()
+    return {"detail": "Agency deleted successfully"}
+
