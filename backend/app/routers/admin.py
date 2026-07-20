@@ -227,6 +227,37 @@ async def create_key_as_superadmin(
     return client_key
 
 
+@router.delete("/keys/{key_id}")
+async def delete_key_as_superadmin(
+    key_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_superadmin)
+):
+    from app.models import ClientKey, ProtocolType
+    from app.services.amnezia import AmneziaClient
+    from app.services.xui import XUIClient
+    from app.config import settings
+
+    key = db.query(ClientKey).get(key_id)
+    if not key:
+        raise HTTPException(status_code=404, detail="Key not found")
+
+    if key.node:
+        node = key.node
+        if key.protocol == ProtocolType.AMNEZIA_WG and key.remote_client_id:
+            amnezia_target_url = node.amnezia_url or settings.AMNEZIA_API_URL
+            amnezia = AmneziaClient(amnezia_target_url, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
+            await amnezia.delete_awg_client(key.remote_client_id)
+        elif key.protocol == ProtocolType.VLESS and node.xui_url and node.xui_inbound_id:
+            xui = XUIClient(node.xui_url, username=node.xui_username, password=node.xui_password, api_token=node.xui_api_token)
+            await xui.delete_client(node.xui_inbound_id, key.remote_client_id, email=f"{key.employee_name}_{key.remote_client_id[:6] if key.remote_client_id else ''}")
+
+    db.delete(key)
+    db.commit()
+    return {"detail": "Key revoked successfully by SuperAdmin"}
+
+
+
 
 
 

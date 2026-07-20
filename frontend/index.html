@@ -699,8 +699,20 @@
     async function revokeKey(keyId) {
         if (!confirm("Вы уверены, что хотите отозвать доступ?")) return;
         const headers = { "Authorization": `Bearer ${token}` };
-        await fetch(`${API_BASE}/agency/keys/${keyId}`, { method: "DELETE", headers });
-        loadAgencyData();
+        const url = userRole === "superadmin" ? `${API_BASE}/admin/keys/${keyId}` : `${API_BASE}/agency/keys/${keyId}`;
+        const res = await fetch(url, { method: "DELETE", headers });
+        if (res.ok) {
+            if (userRole === "superadmin") {
+                loadGlobalKeys();
+                loadSuperadminAgencies();
+            } else {
+                loadAgencyData();
+            }
+            alert("Доступ отозван!");
+        } else {
+            const err = await res.json();
+            alert(err.detail || "Ошибка при отзыве ключа");
+        }
     }
 
     async function createAgency() {
