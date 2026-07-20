@@ -7,10 +7,15 @@ echo "=========================================================="
 
 # 1. Update & Install Dependencies
 apt-get update -y
-apt-get install -y ca-certificates curl gnupg lsb-release iptables ufw docker.io docker-compose-plugin
+apt-get install -y ca-certificates curl gnupg lsb-release iptables ufw docker.io docker-compose || apt-get install -y docker-compose-v2 || true
+
+# Disable systemd-resolved DNS stub listener to free port 53 for AdGuard Home
+sed -i 's/#DNSStubListener=yes/DNSStubListener=no/' /etc/systemd/resolved.conf || true
+systemctl restart systemd-resolved || true
 
 # 2. Install AdGuard Home for DNS Filtering (Gambling & Abuse Protection)
 mkdir -p /opt/adguardhome/work /opt/adguardhome/conf
+
 
 cat <<'EOF' > /opt/adguardhome/conf/AdGuardHome.yaml
 dns:
