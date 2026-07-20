@@ -137,7 +137,7 @@ async def test_node_connection(node_id: int, db: Session = Depends(get_db), _: U
     amnezia_status = False
     amnezia_error = None
 
-    if node.node_type.value == "xui":
+    if node.node_type == "xui":
         if node.xui_url:
             try:
                 from app.services.xui import XUIClient
@@ -158,12 +158,13 @@ async def test_node_connection(node_id: int, db: Session = Depends(get_db), _: U
     return {
         "node_id": node.id,
         "name": node.name,
-        "node_type": node.node_type.value,
+        "node_type": str(node.node_type),
         "xui_connected": xui_status,
         "xui_error": xui_error,
         "amnezia_connected": amnezia_status,
         "amnezia_error": amnezia_error
     }
+
 
 
 

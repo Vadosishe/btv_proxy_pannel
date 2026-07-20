@@ -52,7 +52,7 @@ class Node(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     location = Column(String, nullable=False)
-    node_type = Column(Enum(NodeType), default=NodeType.XUI)
+    node_type = Column(String, default="xui") # "xui" or "amnezia"
     
     # 3X-UI credentials & Inbound ID
     xui_url = Column(String, nullable=True)
@@ -66,6 +66,7 @@ class Node(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     keys = relationship("ClientKey", back_populates="node")
+
 
 
 class ClientKey(Base):
