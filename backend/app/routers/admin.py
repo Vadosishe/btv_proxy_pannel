@@ -116,6 +116,7 @@ async def list_all_keys(db: Session = Depends(get_db), _: User = Depends(require
             "protocol": k.protocol.value,
             "node_name": k.node.name if k.node else "N/A",
             "config_content": k.config_content,
+            "remote_client_id": k.remote_client_id,
             "created_at": k.created_at.strftime("%Y-%m-%d %H:%M")
         })
     return result
