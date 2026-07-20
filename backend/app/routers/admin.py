@@ -134,32 +134,36 @@ async def test_node_connection(node_id: int, db: Session = Depends(get_db), _: U
 
     xui_status = False
     xui_error = None
-    if node.xui_url:
-        try:
-            from app.services.xui import XUIClient
-            xui = XUIClient(node.xui_url, node.xui_username, node.xui_password)
-            xui_status = await xui.login()
-        except Exception as e:
-            xui_error = str(e)
-
     amnezia_status = False
     amnezia_error = None
-    if node.amnezia_server_id:
-        try:
-            from app.services.amnezia import AmneziaClient
-            from app.config import settings
-            amnezia = AmneziaClient(settings.AMNEZIA_API_URL, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
-            amnezia_status = await amnezia.login()
-        except Exception as e:
-            amnezia_error = str(e)
+
+    if node.node_type.value == "xui":
+        if node.xui_url:
+            try:
+                from app.services.xui import XUIClient
+                xui = XUIClient(node.xui_url, username=node.xui_username, password=node.xui_password, api_token=node.xui_api_token)
+                xui_status = await xui.login()
+            except Exception as e:
+                xui_error = str(e)
+    else:
+        if node.amnezia_server_id:
+            try:
+                from app.services.amnezia import AmneziaClient
+                from app.config import settings
+                amnezia = AmneziaClient(settings.AMNEZIA_API_URL, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
+                amnezia_status = await amnezia.login()
+            except Exception as e:
+                amnezia_error = str(e)
 
     return {
         "node_id": node.id,
         "name": node.name,
+        "node_type": node.node_type.value,
         "xui_connected": xui_status,
         "xui_error": xui_error,
         "amnezia_connected": amnezia_status,
         "amnezia_error": amnezia_error
     }
+
 
 

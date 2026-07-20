@@ -262,35 +262,51 @@
     <div id="addNodeModal" class="card hidden" style="max-width: 550px; margin: 20px auto;">
         <h2>Добавить Серверную Ноду</h2>
         <p style="color: var(--text-sub); font-size: 13px; margin-bottom: 16px;">
-            Нода управляет 3X-UI VLESS API и связывается с Master-панелью AmneziaWG v2.
+            Выберите тип создаваемой ноды: 3X-UI (VLESS) или AmneziaWG v2.
         </p>
+
+        <label>Тип Сервера / Движка</label>
+        <select id="nodeTypeSelect" onchange="toggleNodeTypeFields()">
+            <option value="xui">3X-UI (VLESS / Reality)</option>
+            <option value="amnezia">AmneziaWG v2 (Обфускация)</option>
+        </select>
 
         <label>Название ноды</label>
         <input type="text" id="nodeName" placeholder="США (Чикаго)">
         
-        <label>Локация (Флаг/Код)</label>
+        <label>Локация (Флаг/Страна)</label>
         <input type="text" id="nodeLocation" placeholder="US">
 
-        <label>3X-UI Panel API URL</label>
-        <input type="text" id="nodeXuiUrl" placeholder="http://23.95.48.191:2053">
-        
-        <label>3X-UI Username</label>
-        <input type="text" id="nodeXuiUser" placeholder="admin">
-        
-        <label>3X-UI Password</label>
-        <input type="password" id="nodeXuiPass" placeholder="admin">
+        <!-- 3X-UI SPECIFIC FIELDS -->
+        <div id="xuiFields">
+            <label>3X-UI Server API URL</label>
+            <input type="text" id="nodeXuiUrl" placeholder="http://23.95.48.191:2053">
+            
+            <label>API Key / Bearer Token (Рекомендуется)</label>
+            <input type="text" id="nodeXuiToken" placeholder="Ваш Bearer API токен из настроек 3X-UI">
+            
+            <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">Или используйте стандартные логин/пароль 3X-UI:</p>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="nodeXuiUser" placeholder="Логин (admin)">
+                <input type="password" id="nodeXuiPass" placeholder="Пароль (admin)">
+            </div>
 
-        <label>3X-UI Inbound ID</label>
-        <input type="number" id="nodeInboundId" placeholder="1">
+            <label>Inbound ID (Номер подключения)</label>
+            <input type="number" id="nodeInboundId" placeholder="1">
+        </div>
 
-        <label>AmneziaWG Server ID (из amneziavpnphp)</label>
-        <input type="number" id="nodeAmneziaId" placeholder="1">
+        <!-- AMNEZIA SPECIFIC FIELDS -->
+        <div id="amneziaFields" class="hidden">
+            <label>AmneziaWG Server ID (из мастер-панели amneziavpnphp)</label>
+            <input type="number" id="nodeAmneziaId" placeholder="1">
+        </div>
 
-        <div class="actions-flex">
+        <div class="actions-flex" style="margin-top: 16px;">
             <button onclick="submitAddNode()">Подключить Ноду</button>
             <button onclick="hideAddNodeModal()" class="btn-secondary">Отмена</button>
         </div>
     </div>
+
 
 </div>
 
@@ -473,6 +489,17 @@
         renderGlobalKeys(filtered);
     }
 
+    function toggleNodeTypeFields() {
+        const type = document.getElementById("nodeTypeSelect").value;
+        if (type === "xui") {
+            document.getElementById("xuiFields").classList.remove("hidden");
+            document.getElementById("amneziaFields").classList.add("hidden");
+        } else {
+            document.getElementById("xuiFields").classList.add("hidden");
+            document.getElementById("amneziaFields").classList.remove("hidden");
+        }
+    }
+
     async function loadNodes() {
         const headers = { "Authorization": `Bearer ${token}` };
         const resNodes = await fetch(`${API_BASE}/admin/nodes`, { headers });
@@ -482,12 +509,18 @@
             grid.innerHTML = "";
             
             nodes.forEach(n => {
+                const typeLabel = n.node_type === "xui" ? "⚡ 3X-UI (VLESS)" : "🔒 AmneziaWG v2";
+                const details = n.node_type === "xui" 
+                    ? `<div><strong>3X-UI Server URL:</strong> ${n.xui_url || 'N/A'} (Inbound ID: ${n.xui_inbound_id || '-'})</div>`
+                    : `<div><strong>AmneziaWG Server ID:</strong> ${n.amnezia_server_id || '1'} (управляется через amneziavpnphp)</div>`;
+
                 grid.innerHTML += `
                     <div class="node-card">
                         <div class="node-header">
                             <div>
                                 <strong style="font-size:16px;">${n.name}</strong> 
                                 <span class="badge badge-awg">${n.location}</span>
+                                <span class="badge badge-vless" style="margin-left:6px;">${typeLabel}</span>
                             </div>
                             <div class="actions-flex">
                                 <button onclick="testNode(${n.id})" class="btn-secondary" style="width:auto; padding:4px 10px;">Проверить связь</button>
@@ -495,8 +528,7 @@
                             </div>
                         </div>
                         <div style="font-size:13px; color:var(--text-sub);">
-                            <div><strong>3X-UI Endpoint:</strong> ${n.xui_url || 'N/A'} (Inbound ID: ${n.xui_inbound_id || '-'})</div>
-                            <div><strong>AmneziaWG Server ID:</strong> ${n.amnezia_server_id || 'N/A'}</div>
+                            ${details}
                             <div id="nodeStatus_${n.id}" style="margin-top:8px;"></div>
                         </div>
                     </div>
@@ -505,45 +537,25 @@
         }
     }
 
-    async function testNode(nodeId) {
-        const headers = { "Authorization": `Bearer ${token}` };
-        const statusDiv = document.getElementById(`nodeStatus_${nodeId}`);
-        statusDiv.innerHTML = `<span style="color:var(--primary);">Проверка связи...</span>`;
-
-        const res = await fetch(`${API_BASE}/admin/nodes/${nodeId}/test`, { method: "POST", headers });
-        if (res.ok) {
-            const data = await res.json();
-            const xuiBadge = data.xui_connected ? `<span class="badge badge-online">3X-UI: Online</span>` : `<span class="badge badge-offline">3X-UI: Offline</span>`;
-            const amneziaBadge = data.amnezia_connected ? `<span class="badge badge-online">AmneziaWG: Online</span>` : `<span class="badge badge-offline">AmneziaWG: Offline</span>`;
-            statusDiv.innerHTML = `${xuiBadge} ${amneziaBadge}`;
-        }
-    }
-
-    async function deleteNode(nodeId) {
-        if (!confirm("Удалить ноду?")) return;
-        const headers = { "Authorization": `Bearer ${token}` };
-        await fetch(`${API_BASE}/admin/nodes/${nodeId}`, { method: "DELETE", headers });
-        loadNodes();
-    }
-
-    function showAddNodeModal() { document.getElementById("addNodeModal").classList.remove("hidden"); }
-    function hideAddNodeModal() { document.getElementById("addNodeModal").classList.add("hidden"); }
-
     async function submitAddNode() {
         const headers = { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" };
+        const nodeType = document.getElementById("nodeTypeSelect").value;
         const payload = {
             name: document.getElementById("nodeName").value,
             location: document.getElementById("nodeLocation").value,
-            xui_url: document.getElementById("nodeXuiUrl").value,
-            xui_username: document.getElementById("nodeXuiUser").value,
-            xui_password: document.getElementById("nodeXuiPass").value,
-            xui_inbound_id: parseInt(document.getElementById("nodeInboundId").value) || null,
-            amnezia_server_id: parseInt(document.getElementById("nodeAmneziaId").value) || null
+            node_type: nodeType,
+            xui_url: nodeType === "xui" ? document.getElementById("nodeXuiUrl").value : null,
+            xui_api_token: nodeType === "xui" ? document.getElementById("nodeXuiToken").value : null,
+            xui_username: nodeType === "xui" ? document.getElementById("nodeXuiUser").value : null,
+            xui_password: nodeType === "xui" ? document.getElementById("nodeXuiPass").value : null,
+            xui_inbound_id: nodeType === "xui" ? (parseInt(document.getElementById("nodeInboundId").value) || null) : null,
+            amnezia_server_id: nodeType === "amnezia" ? (parseInt(document.getElementById("nodeAmneziaId").value) || 1) : null
         };
         await fetch(`${API_BASE}/admin/nodes`, { method: "POST", headers, body: JSON.stringify(payload) });
         hideAddNodeModal();
         loadNodes();
     }
+
 
     async function showCreateKeyModal() {
         const headers = { "Authorization": `Bearer ${token}` };

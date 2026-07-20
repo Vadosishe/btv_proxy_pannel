@@ -42,24 +42,31 @@ class User(Base):
 
     agency = relationship("Agency", back_populates="admins")
 
+class NodeType(str, enum.Enum):
+    XUI = "xui"
+    AMNEZIA = "amnezia"
+
 class Node(Base):
     __tablename__ = "nodes"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     location = Column(String, nullable=False)
+    node_type = Column(Enum(NodeType), default=NodeType.XUI)
     
-    # 3X-UI v3 credentials & Inbound ID for VLESS
+    # 3X-UI credentials & Inbound ID
     xui_url = Column(String, nullable=True)
+    xui_api_token = Column(String, nullable=True)
     xui_username = Column(String, nullable=True)
     xui_password = Column(String, nullable=True)
     xui_inbound_id = Column(Integer, nullable=True)
     
-    # amneziavpnphp Server ID for AmneziaWG
+    # amneziavpnphp Server ID
     amnezia_server_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     keys = relationship("ClientKey", back_populates="node")
+
 
 class ClientKey(Base):
     __tablename__ = "client_keys"

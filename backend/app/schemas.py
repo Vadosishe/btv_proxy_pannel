@@ -44,7 +44,9 @@ class AgencyResponse(BaseModel):
 class NodeCreate(BaseModel):
     name: str
     location: str
+    node_type: str = "xui" # "xui" or "amnezia"
     xui_url: Optional[str] = None
+    xui_api_token: Optional[str] = None
     xui_username: Optional[str] = None
     xui_password: Optional[str] = None
     xui_inbound_id: Optional[int] = None
@@ -54,10 +56,15 @@ class NodeResponse(BaseModel):
     id: int
     name: str
     location: str
+    node_type: str
+    xui_url: Optional[str]
+    xui_inbound_id: Optional[int]
+    amnezia_server_id: Optional[int]
     created_at: datetime
 
     class Config:
         from_attributes = True
+
 
 class ClientKeyCreate(BaseModel):
     employee_name: str

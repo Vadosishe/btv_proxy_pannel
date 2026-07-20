@@ -75,10 +75,11 @@ async def create_client_key(
         if not node.xui_url or not node.xui_inbound_id:
             raise HTTPException(status_code=400, detail="Node is not configured for VLESS / 3X-UI")
 
-        xui = XUIClient(node.xui_url, node.xui_username, node.xui_password)
-        res = await xui.add_vless_client(node.xui_inbound_id, payload.employee_name)
+        xui = XUIClient(node.xui_url, username=node.xui_username, password=node.xui_password, api_token=node.xui_api_token)
+        res = await xui.add_vless_client(node.xui_inbound_id, payload.employee_name, group_name=agency.name)
         config_content = res["vless_link"]
         remote_id = res["client_id"]
+
 
     client_key = ClientKey(
         agency_id=agency.id,
