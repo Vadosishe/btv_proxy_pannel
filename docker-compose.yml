@@ -28,9 +28,18 @@ services:
       - "8000:8000"
     volumes:
       - ./frontend:/app/frontend
+    networks:
+      - default
+      - amneziavpnphp_net
     depends_on:
       - postgres
 
+networks:
+  default:
+  amneziavpnphp_net:
+    external: true
+    name: amneziavpnphp_default
 
 volumes:
   postgres_data:
+
