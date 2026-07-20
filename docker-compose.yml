@@ -23,7 +23,7 @@ services:
     environment:
       DATABASE_URL: postgresql://vpn_user:vpn_password_secret@postgres:5432/b2b_vpn
       JWT_SECRET: b2b_vpn_super_secret_jwt_key_2026
-      AMNEZIA_API_URL: http://amnezia-panel-web:80
+      AMNEZIA_API_URL: http://5.129.229.25:8082
     ports:
       - "8000:8000"
     volumes:

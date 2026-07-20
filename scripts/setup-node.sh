@@ -60,7 +60,8 @@ netfilter-persistent save || true
 
 # 4. Install 3X-UI Node Engine for VLESS / Reality
 echo "[+] Installing 3X-UI Node Engine..."
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+printf "y\n2053\nadmin\nadmin\n" | bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) || true
+
 
 echo "=========================================================="
 echo " SUCCESS: Node is hardened and ready for AmneziaWG + 3X-UI!"

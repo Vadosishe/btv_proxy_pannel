@@ -67,7 +67,7 @@ class Node(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
-    keys = relationship("ClientKey", back_populates="node")
+    keys = relationship("ClientKey", back_populates="node", cascade="all, delete-orphan")
 
 
 

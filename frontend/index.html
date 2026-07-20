@@ -345,6 +345,7 @@
             <div class="flex" style="margin-bottom:12px; flex-wrap:wrap; gap:8px;">
                 <input type="text" id="sSearch" style="flex:1; min-width:200px;" placeholder="🔍 Поиск по имени или UUID..." oninput="filterKeys()">
                 <select id="sCompany" style="width:180px;" onchange="filterKeys()"><option value="">Все компании</option></select>
+                <select id="sNode" style="width:180px;" onchange="filterKeys()"><option value="">Все ноды</option></select>
                 <select id="sProto" style="width:140px;" onchange="filterKeys()">
                     <option value="">Все</option><option value="awg">AWG</option><option value="vless">VLESS</option>
                 </select>
@@ -486,8 +487,8 @@ function renderKeys(keys) {
 }
 
 function filterKeys() {
-    const s=document.getElementById("sSearch").value.toLowerCase(), c=document.getElementById("sCompany").value, p=document.getElementById("sProto").value;
-    renderKeys(keysCache.filter(k => (k.employee_name.toLowerCase().includes(s)||k.secret_uuid.includes(s)) && (!c||k.agency_name===c) && (!p||k.protocol===p)));
+    const s=document.getElementById("sSearch").value.toLowerCase(), c=document.getElementById("sCompany").value, nd=document.getElementById("sNode").value, p=document.getElementById("sProto").value;
+    renderKeys(keysCache.filter(k => (k.employee_name.toLowerCase().includes(s)||k.secret_uuid.includes(s)) && (!c||k.agency_name===c) && (!nd||k.node_name===nd) && (!p||k.protocol===p)));
 }
 
 /* ===== NODES ===== */
@@ -499,6 +500,7 @@ async function loadNodes() {
         if (r.ok) {
             const nodes=await r.json(); grid.innerHTML="";
             if (document.getElementById("sNodes")) document.getElementById("sNodes").innerText=nodes.length;
+            const ndFlt=document.getElementById("sNode"); if(ndFlt){ndFlt.innerHTML=`<option value="">Все ноды</option>`+nodes.map(n=>`<option value="${n.name}">${n.name}</option>`).join("");}
             if (!nodes.length) { grid.innerHTML=`<div class="empty"><div class="empty-ico">🖥️</div><div class="empty-txt">Нет нод</div></div>`; return; }
             nodes.forEach(n => {
                 const tl=n.node_type==="xui"?"⚡ 3X-UI":"🔒 AWG", bc=n.node_type==="xui"?"b-vless":"b-awg";
@@ -519,7 +521,16 @@ async function testNode(id) {
     } catch(e) { d.innerHTML=`<span class="badge b-off">Ошибка сети</span>`; }
 }
 
-async function delNode(id) { if (!confirm("Удалить ноду?")) return; await fetch(`${API}/admin/nodes/${id}`,{method:"DELETE",headers:{"Authorization":`Bearer ${token}`}}); toast("Нода удалена","ok"); loadNodes(); }
+async function delNode(id) {
+    if (!confirm("Удалить ноду и все её ключи?")) return;
+    showProg("Удаление ноды…","Удаление связанных ключей");
+    try {
+        const r=await fetch(`${API}/admin/nodes/${id}`,{method:"DELETE",headers:{"Authorization":`Bearer ${token}`}});
+        hideProg();
+        if (r.ok) { toast("Нода удалена","ok"); loadNodes(); loadKeys(); }
+        else { const e=await r.json(); toast(e.detail||"Ошибка удаления","err"); }
+    } catch(e) { hideProg(); toast("Ошибка сети","err"); }
+}
 
 /* ===== ADD NODE MODAL ===== */
 function openNodeModal() {
@@ -527,7 +538,7 @@ function openNodeModal() {
         <label>Тип сервера</label><select id="nType" onchange="toggleNF()"><option value="xui">3X-UI (VLESS)</option><option value="amnezia">AmneziaWG v2</option></select>
         <div class="row2"><div><label>Название</label><input id="nName" placeholder="США"></div><div><label>Локация</label><input id="nLoc" placeholder="US"></div></div>
         <div id="xuiF"><label>Server URL</label><input id="nXUrl" placeholder="http://ip:2053"><label>API Token</label><input id="nXTok" placeholder="Token"><div style="font-size:11px;color:var(--text-3);margin:4px 0 6px;">Или логин/пароль:</div><div class="row2"><input id="nXU" placeholder="Логин"><input id="nXP" type="password" placeholder="Пароль"></div><label>Inbound ID</label><input id="nXI" type="number" placeholder="1"></div>
-        <div id="amnF" class="hide"><label>Panel URL</label><input id="nAUrl" placeholder="http://ip:8082"><label>Server ID</label><input id="nAId" type="number" placeholder="1"></div>
+        <div id="amnF" class="hide"><label>Server ID <span style="color:var(--text-3);font-weight:400">(номер сервера в панели Amnezia)</span></label><input id="nAId" type="number" placeholder="2" value="2"></div>
         <div class="btns"><button onclick="submitNode()" class="btn">Подключить</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
 }
 function toggleNF() { const t=document.getElementById("nType").value; document.getElementById("xuiF").classList.toggle("hide",t!=="xui"); document.getElementById("amnF").classList.toggle("hide",t!=="amnezia"); }
@@ -539,7 +550,7 @@ async function submitNode() {
             xui_url:t==="xui"?document.getElementById("nXUrl").value:null, xui_api_token:t==="xui"?document.getElementById("nXTok").value:null,
             xui_username:t==="xui"?document.getElementById("nXU").value:null, xui_password:t==="xui"?document.getElementById("nXP").value:null,
             xui_inbound_id:t==="xui"?(parseInt(document.getElementById("nXI").value)||null):null,
-            amnezia_url:t==="amnezia"?document.getElementById("nAUrl").value:null, amnezia_server_id:t==="amnezia"?(parseInt(document.getElementById("nAId").value)||1):null};
+            amnezia_url:null, amnezia_server_id:t==="amnezia"?(parseInt(document.getElementById("nAId").value)||2):null};
         const r=await fetch(`${API}/admin/nodes`,{method:"POST",headers:h,body:JSON.stringify(p)});
         if (r.ok) { closeModal(); toast("Нода подключена!","ok"); loadNodes(); } else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
     } catch(e) { toast("Ошибка сети","err"); }
@@ -562,7 +573,7 @@ async function openKeyModal() {
         <div class="row2"><div><label>Протокол</label><select id="kProto"><option value="awg">AmneziaWG</option><option value="vless">VLESS</option></select></div>
         <div><label>Сервер</label><select id="kNode">${nSel}</select></div></div>
         <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="kSplit" style="width:auto; cursor:pointer;">
+            <input type="checkbox" id="kSplit" checked style="width:auto; cursor:pointer;">
             <label for="kSplit" style="margin:0; cursor:pointer; font-size:12px; color:var(--text-2);">📱/💻 Создать 2 раздельных ключа (Phone + PC)</label>
         </div>
         <div class="btns"><button id="kBtn" onclick="submitKey()" class="btn">Выпустить</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
@@ -601,7 +612,7 @@ function openBulkModal() {
         <div class="row2"><div><label>Протокол</label><select id="bProto"><option value="awg">AmneziaWG</option><option value="vless">VLESS</option></select></div>
         <div><label>Сервер</label><select id="bNode"></select></div></div>
         <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="bSplit" style="width:auto; cursor:pointer;">
+            <input type="checkbox" id="bSplit" checked style="width:auto; cursor:pointer;">
             <label for="bSplit" style="margin:0; cursor:pointer; font-size:12px; color:var(--text-2);">📱/💻 Выпустить по 2 ключа (Phone + PC) на каждого сотрудника</label>
         </div>
         <div id="bulkProgress" class="hide" style="margin-top:12px;"></div>
