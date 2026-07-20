@@ -80,10 +80,12 @@ class ClientKeyResponse(BaseModel):
     employee_name: str
     protocol: ProtocolType
     config_content: str
+    remote_client_id: Optional[str] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
+
 
 class BlackholeCreate(BaseModel):
     entry_type: EntryType
