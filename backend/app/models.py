@@ -61,9 +61,11 @@ class Node(Base):
     xui_password = Column(String, nullable=True)
     xui_inbound_id = Column(Integer, nullable=True)
     
-    # amneziavpnphp Server ID
+    # amneziavpnphp Master Panel URL & Server ID
+    amnezia_url = Column(String, nullable=True)
     amnezia_server_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
 
     keys = relationship("ClientKey", back_populates="node")
 
