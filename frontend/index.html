@@ -561,6 +561,10 @@ async function openKeyModal() {
         <label>Имя сотрудника</label><input id="kName" placeholder="Иванов Иван">
         <div class="row2"><div><label>Протокол</label><select id="kProto"><option value="awg">AmneziaWG</option><option value="vless">VLESS</option></select></div>
         <div><label>Сервер</label><select id="kNode">${nSel}</select></div></div>
+        <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="kSplit" style="width:auto; cursor:pointer;">
+            <label for="kSplit" style="margin:0; cursor:pointer; font-size:12px; color:var(--text-2);">📱/💻 Создать 2 раздельных ключа (Phone + PC)</label>
+        </div>
         <div class="btns"><button id="kBtn" onclick="submitKey()" class="btn">Выпустить</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
 }
 
@@ -571,12 +575,19 @@ async function submitKey() {
         const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
         const name=document.getElementById("kName").value, proto=document.getElementById("kProto").value, nodeId=parseInt(document.getElementById("kNode").value);
         if (!name) { hideProg(); toast("Введите имя","err"); btn.disabled=false; return; }
-        let r;
-        if (role==="superadmin") { const cid=parseInt(document.getElementById("kCompany").value); r=await fetch(`${API}/admin/keys/create?agency_id=${cid}&employee_name=${encodeURIComponent(name)}&protocol=${proto}&node_id=${nodeId}`,{method:"POST",headers:h}); }
-        else { r=await fetch(`${API}/agency/keys/create`,{method:"POST",headers:h,body:JSON.stringify({employee_name:name,protocol:proto,node_id:nodeId})}); }
+        const split = document.getElementById("kSplit").checked;
+        const targets = split ? [`${name} (phone)`, `${name} (pc)`] : [name];
+
+        let okCount = 0;
+        for (const item of targets) {
+            let r;
+            if (role==="superadmin") { const cid=parseInt(document.getElementById("kCompany").value); r=await fetch(`${API}/admin/keys/create?agency_id=${cid}&employee_name=${encodeURIComponent(item)}&protocol=${proto}&node_id=${nodeId}`,{method:"POST",headers:h}); }
+            else { r=await fetch(`${API}/agency/keys/create`,{method:"POST",headers:h,body:JSON.stringify({employee_name:item,protocol:proto,node_id:nodeId})}); }
+            if (r.ok) okCount++;
+        }
         hideProg();
-        if (r.ok) { closeModal(); toast("Ключ выпущен!","ok"); if (role==="superadmin"){loadKeys();loadCompanies();}else{loadMyData();} }
-        else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+        if (okCount > 0) { closeModal(); toast(`Выпущено ключей: ${okCount}`,"ok"); if (role==="superadmin"){loadKeys();loadCompanies();}else{loadMyData();} }
+        else { toast("Ошибка выпуска ключа","err"); }
     } catch(e) { hideProg(); toast("Ошибка сети","err"); }
     finally { if (document.getElementById("kBtn")) document.getElementById("kBtn").disabled=false; }
 }
@@ -589,6 +600,10 @@ function openBulkModal() {
         <textarea id="bNames" placeholder="Иванов Иван&#10;Петров Пётр&#10;Сидоров Сидор&#10;..."></textarea>
         <div class="row2"><div><label>Протокол</label><select id="bProto"><option value="awg">AmneziaWG</option><option value="vless">VLESS</option></select></div>
         <div><label>Сервер</label><select id="bNode"></select></div></div>
+        <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="bSplit" style="width:auto; cursor:pointer;">
+            <label for="bSplit" style="margin:0; cursor:pointer; font-size:12px; color:var(--text-2);">📱/💻 Выпустить по 2 ключа (Phone + PC) на каждого сотрудника</label>
+        </div>
         <div id="bulkProgress" class="hide" style="margin-top:12px;"></div>
         <div class="btns"><button id="bBtn" onclick="submitBulk()" class="btn">🚀 Выпустить все</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
     // Fill selects
@@ -603,21 +618,33 @@ async function submitBulk() {
     const companyId=parseInt(document.getElementById("bCompany").value);
     const proto=document.getElementById("bProto").value;
     const nodeId=parseInt(document.getElementById("bNode").value);
+    const split=document.getElementById("bSplit").checked;
+
+    let targets = [];
+    for (const n of names) {
+        if (split) {
+            targets.push(`${n} (phone)`);
+            targets.push(`${n} (pc)`);
+        } else {
+            targets.push(n);
+        }
+    }
+
     const btn=document.getElementById("bBtn"); btn.disabled=true;
     const prog=document.getElementById("bulkProgress"); prog.classList.remove("hide");
     const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
 
     let ok=0, fail=0;
-    for (let i=0; i<names.length; i++) {
-        prog.innerHTML=`<div class="spin-wrap" style="padding:8px 0;justify-content:flex-start;"><span class="spin"></span>Создание ${i+1} из ${names.length}: <strong>${names[i]}</strong></div>`;
+    for (let i=0; i<targets.length; i++) {
+        prog.innerHTML=`<div class="spin-wrap" style="padding:8px 0;justify-content:flex-start;"><span class="spin"></span>Создание ${i+1} из ${targets.length}: <strong>${targets[i]}</strong></div>`;
         try {
-            const r=await fetch(`${API}/admin/keys/create?agency_id=${companyId}&employee_name=${encodeURIComponent(names[i])}&protocol=${proto}&node_id=${nodeId}`,{method:"POST",headers:h});
+            const r=await fetch(`${API}/admin/keys/create?agency_id=${companyId}&employee_name=${encodeURIComponent(targets[i])}&protocol=${proto}&node_id=${nodeId}`,{method:"POST",headers:h});
             if (r.ok) ok++; else fail++;
         } catch(e) { fail++; }
     }
     prog.innerHTML=`<div style="padding:8px 0;font-size:13px;"><span style="color:var(--green);">✓ Создано: ${ok}</span>${fail?` · <span style="color:var(--danger);">✗ Ошибок: ${fail}</span>`:''}</div>`;
     btn.disabled=false; btn.innerText="Готово ✓"; btn.onclick=()=>{closeModal();loadKeys();loadCompanies();};
-    toast(`Создано ${ok} из ${names.length} ключей`, ok===names.length?'ok':'info');
+    toast(`Создано ${ok} из ${targets.length} ключей`, ok===targets.length?'ok':'info');
 }
 
 /* ===== REVOKE ===== */
