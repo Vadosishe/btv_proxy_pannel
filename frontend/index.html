@@ -563,14 +563,27 @@
         const statusDiv = document.getElementById(`nodeStatus_${nodeId}`);
         statusDiv.innerHTML = `<span style="color:var(--primary);">Проверка связи...</span>`;
 
-        const res = await fetch(`${API_BASE}/admin/nodes/${nodeId}/test`, { method: "POST", headers });
-        if (res.ok) {
-            const data = await res.json();
-            const xuiBadge = data.xui_connected ? `<span class="badge badge-online">3X-UI: Online</span>` : `<span class="badge badge-offline">3X-UI: Offline</span>`;
-            const amneziaBadge = data.amnezia_connected ? `<span class="badge badge-online">AmneziaWG: Online</span>` : `<span class="badge badge-offline">AmneziaWG: Offline</span>`;
-            statusDiv.innerHTML = `${xuiBadge} ${amneziaBadge}`;
+        try {
+            const res = await fetch(`${API_BASE}/admin/nodes/${nodeId}/test`, { method: "POST", headers });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.node_type === "xui") {
+                    statusDiv.innerHTML = data.xui_connected 
+                        ? `<span class="badge badge-online">3X-UI: Online</span>` 
+                        : `<span class="badge badge-offline">3X-UI: Offline (${data.xui_error || 'ошибка авторизации'})</span>`;
+                } else {
+                    statusDiv.innerHTML = data.amnezia_connected 
+                        ? `<span class="badge badge-online">AmneziaWG: Online</span>` 
+                        : `<span class="badge badge-offline">AmneziaWG: Offline (${data.amnezia_error || 'ошибка подключения'})</span>`;
+                }
+            } else {
+                statusDiv.innerHTML = `<span class="badge badge-offline">Ошибка запроса</span>`;
+            }
+        } catch (e) {
+            statusDiv.innerHTML = `<span class="badge badge-offline">Ошибка сети</span>`;
         }
     }
+
 
     async function deleteNode(nodeId) {
         if (!confirm("Удалить ноду?")) return;

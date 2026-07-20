@@ -159,8 +159,19 @@ async def test_node_connection(node_id: int, db: Session = Depends(get_db), _: U
             except Exception as e:
                 amnezia_error = str(e)
 
+    return {
+        "node_id": node.id,
+        "name": node.name,
+        "node_type": str(node.node_type),
+        "xui_connected": xui_status,
+        "xui_error": xui_error,
+        "amnezia_connected": amnezia_status,
+        "amnezia_error": amnezia_error
+    }
+
 
 @router.post("/keys/create")
+
 async def create_key_as_superadmin(
     agency_id: int,
     employee_name: str,
