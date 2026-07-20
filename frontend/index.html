@@ -537,6 +537,35 @@
         }
     }
 
+    function showAddNodeModal() { 
+        document.getElementById("addNodeModal").classList.remove("hidden"); 
+    }
+    
+    function hideAddNodeModal() { 
+        document.getElementById("addNodeModal").classList.add("hidden"); 
+    }
+
+    async function testNode(nodeId) {
+        const headers = { "Authorization": `Bearer ${token}` };
+        const statusDiv = document.getElementById(`nodeStatus_${nodeId}`);
+        statusDiv.innerHTML = `<span style="color:var(--primary);">Проверка связи...</span>`;
+
+        const res = await fetch(`${API_BASE}/admin/nodes/${nodeId}/test`, { method: "POST", headers });
+        if (res.ok) {
+            const data = await res.json();
+            const xuiBadge = data.xui_connected ? `<span class="badge badge-online">3X-UI: Online</span>` : `<span class="badge badge-offline">3X-UI: Offline</span>`;
+            const amneziaBadge = data.amnezia_connected ? `<span class="badge badge-online">AmneziaWG: Online</span>` : `<span class="badge badge-offline">AmneziaWG: Offline</span>`;
+            statusDiv.innerHTML = `${xuiBadge} ${amneziaBadge}`;
+        }
+    }
+
+    async function deleteNode(nodeId) {
+        if (!confirm("Удалить ноду?")) return;
+        const headers = { "Authorization": `Bearer ${token}` };
+        await fetch(`${API_BASE}/admin/nodes/${nodeId}`, { method: "DELETE", headers });
+        loadNodes();
+    }
+
     async function submitAddNode() {
         try {
             const headers = { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" };
@@ -564,6 +593,7 @@
             alert("Ошибка сети или скрипта: " + err.message);
         }
     }
+
 
 
 
