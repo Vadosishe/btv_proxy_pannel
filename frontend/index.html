@@ -537,8 +537,9 @@
                     <td>${k.node_name}</td>
                     <td><a href="${link}" target="_blank" style="color:var(--primary);">${link}</a></td>
                     <td>${k.created_at}</td>
-                    <td>
+                    <td class="actions-flex">
                         <button onclick="copyToClipboard('${link}')" class="btn-secondary" style="width:auto; padding:4px 8px;">Копировать</button>
+                        <button onclick="revokeKey(${k.id})" class="btn-danger" style="width:auto; padding:4px 8px;">Отозвать</button>
                     </td>
                 </tr>
             `;
