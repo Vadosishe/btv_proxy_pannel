@@ -524,7 +524,8 @@
         setTimeout(() => t.remove(), 4000);
     }
 
-    async function apiReq(url, method='GET', data=null) {
+    async function apiReq(url, method='GET', data=null, silent=false) {
+        if (!url.startsWith('/api/')) url = '/api' + (url.startsWith('/') ? '' : '/') + url;
         const headers = { 'Content-Type': 'application/json' };
         if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
         
@@ -533,14 +534,14 @@
             if (data) opts.body = JSON.stringify(data);
             const res = await fetch(url, opts);
             if (res.status === 401) {
-                logout();
+                logout(true);
                 throw new Error('Сессия истекла');
             }
             const json = await res.json();
             if (!res.ok) throw new Error(json.detail || 'Ошибка сервера');
             return json;
         } catch(e) {
-            showToast(e.message, 'err');
+            if (!silent) showToast(e.message, 'err');
             throw e;
         }
     }
@@ -555,29 +556,34 @@
             formData.append('username', u);
             formData.append('password', p);
             
-            const res = await fetch('/auth/token', { method: 'POST', body: formData });
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            });
             const json = await res.json();
             if (!res.ok) throw new Error(json.detail || 'Неверный логин или пароль');
             
             state.token = json.access_token;
+            state.user = { email: u, role: json.role, agency_id: json.agency_id };
             localStorage.setItem('token', state.token);
-            
-            // Get me profile
-            const me = await apiReq('/auth/me');
-            state.user = me;
-            localStorage.setItem('user', JSON.stringify(me));
+            localStorage.setItem('user', JSON.stringify(state.user));
             
             initApp();
-            showToast(`Добро пожаловать, ${me.email}!`, 'ok');
+            showToast(`Успешный вход в BigTime Tunnel!`, 'ok');
         } catch(err) {
             showToast(err.message, 'err');
         }
     }
 
-    function logout() {
+    function logout(silent=false) {
         state.token = '';
         state.user = {};
         localStorage.clear();
+        document.getElementById('userBar').classList.add('hide');
+        showSection('authSection');
+        if (!silent) showToast('Вы вышли из системы', 'info');
+    }
         document.getElementById('userBar').classList.add('hide');
         showSection('authSection');
     }
