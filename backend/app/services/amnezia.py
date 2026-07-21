@@ -2,6 +2,7 @@ import httpx
 import base64
 import zlib
 import json
+import re
 from typing import Dict, Any
 
 class AmneziaClient:
