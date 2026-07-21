@@ -101,9 +101,39 @@ class AmneziaClient:
         return {}
 
     def _format_vpn_uri(self, raw_conf: str) -> str:
-
-
-        """Converts raw Amnezia WireGuard config string to vpn:// URI format if not provided directly."""
+        """Converts raw Amnezia WireGuard config string to native Amnezia vpn://AAAL... URI format."""
+        if not raw_conf:
+            return ""
+        if raw_conf.startswith("vpn://"):
+            return format_amnezia_vpn_link(raw_conf)
         compressed = zlib.compress(raw_conf.encode('utf-8'))
-        b64 = base64.urlsafe_b64encode(compressed).decode('utf-8').rstrip('=')
+        header = bytes([0, 0, 11, 63])  # Amnezia magic header '\x00\x00\x0b\x3f' (AAAL)
+        b64 = base64.urlsafe_b64encode(header + compressed).decode('utf-8').rstrip('=')
         return f"vpn://{b64}"
+
+
+def format_amnezia_vpn_link(vpn_link_or_conf: str) -> str:
+    """Ensures Amnezia link has native AAAL magic header prefix."""
+    if not vpn_link_or_conf:
+        return ""
+    if vpn_link_or_conf.startswith("vpn://AAAL"):
+        return vpn_link_or_conf
+    if vpn_link_or_conf.startswith("vpn://"):
+        b64 = vpn_link_or_conf.replace("vpn://", "")
+        missing_padding = len(b64) % 4
+        if missing_padding:
+            b64 += '=' * (4 - missing_padding)
+        try:
+            raw = base64.urlsafe_b64decode(b64)
+            if not raw.startswith(b"\x00\x00\x0b\x3f"):
+                header = bytes([0, 0, 11, 63])
+                new_b64 = base64.urlsafe_b64encode(header + raw).decode('utf-8').rstrip('=')
+                return f"vpn://{new_b64}"
+        except Exception:
+            pass
+    elif "[Interface]" in vpn_link_or_conf:
+        compressed = zlib.compress(vpn_link_or_conf.encode('utf-8'))
+        header = bytes([0, 0, 11, 63])
+        b64 = base64.urlsafe_b64encode(header + compressed).decode('utf-8').rstrip('=')
+        return f"vpn://{b64}"
+    return vpn_link_or_conf

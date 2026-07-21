@@ -53,6 +53,8 @@ def _render_employee_page(employee: Employee) -> HTMLResponse:
     """Render page for new Employee model — all keys grouped by node."""
     agency_name = employee.agency.name if employee.agency else "Компания"
 
+    from app.services.amnezia import format_amnezia_vpn_link
+
     # Group keys by node
     nodes_map = {}  # node_id -> {node_name, location, keys: []}
     for k in employee.keys:
@@ -67,11 +69,12 @@ def _render_employee_page(employee: Employee) -> HTMLResponse:
         label = "📱 Телефон" if k.employee_name.lower().endswith("(phone)") else \
                 "💻 Компьютер" if k.employee_name.lower().endswith("(pc)") else \
                 "🔑 Ключ"
+        cfg = format_amnezia_vpn_link(k.config_content) if k.protocol == ProtocolType.AMNEZIA_WG else k.config_content
         nodes_map[nid]["keys"].append({
             "label": label,
-            "config": k.config_content,
+            "config": cfg,
             "protocol": k.protocol.value,
-            "qr": generate_qr_data_url(k.config_content)
+            "qr": generate_qr_data_url(cfg)
         })
 
     # Sort keys within each node: phone first, pc second
@@ -141,18 +144,20 @@ def _render_legacy_page(key, siblings, base_name) -> HTMLResponse:
     agency_name = key.agency.name if key.agency else "Компания"
     protocol_title = "AmneziaWG v2" if key.protocol == ProtocolType.AMNEZIA_WG else "VLESS / Reality"
 
+    from app.services.amnezia import format_amnezia_vpn_link
     key_cards_html = ""
     for i, k in enumerate(siblings):
         label = "📱 Телефон" if k.employee_name.lower().endswith("(phone)") else \
                 "💻 Компьютер" if k.employee_name.lower().endswith("(pc)") else \
                 f"🔑 Ключ {i+1}" if len(siblings) > 1 else "🔑 Ваш ключ"
-        qr_url = generate_qr_data_url(k.config_content)
+        cfg = format_amnezia_vpn_link(k.config_content) if k.protocol == ProtocolType.AMNEZIA_WG else k.config_content
+        qr_url = generate_qr_data_url(cfg)
         key_cards_html += f"""
         <div class="key-item">
             <div class="key-label">{label}</div>
             <div class="qr-container"><img src="{qr_url}" alt="QR"></div>
-            <a href="{k.config_content}" class="btn">Подключить в 1 клик</a>
-            <div class="config-box">{k.config_content}</div>
+            <a href="{cfg}" class="btn">Подключить в 1 клик</a>
+            <div class="config-box">{cfg}</div>
         </div>
         """
 
