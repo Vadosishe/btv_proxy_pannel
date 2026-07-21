@@ -234,6 +234,37 @@ def list_all_employees(db: Session = Depends(get_db), _: User = Depends(require_
     employees = db.query(Employee).all()
     return [_employee_to_dict(e) for e in employees]
 
+@router.post("/employees/init")
+def init_employee_creation(
+    name: str, agency_id: int, template_id: int = None,
+    db: Session = Depends(get_db), _: User = Depends(require_superadmin)
+):
+    agency = db.query(Agency).get(agency_id)
+    if not agency:
+        raise HTTPException(status_code=404, detail="Agency not found")
+    tmpl = db.query(Template).get(template_id) if template_id else agency.template
+    if not tmpl or not tmpl.nodes:
+        raise HTTPException(status_code=400, detail="К компании не привязан шаблон или в шаблоне нет серверных нод.")
+
+    employee_count = db.query(Employee).filter(Employee.agency_id == agency_id).count()
+    if employee_count >= agency.quota_awg:
+        raise HTTPException(status_code=400, detail=f"Лимит сотрудников ({agency.quota_awg}) исчерпан!")
+
+    return _init_employee_tasks(name, agency, tmpl, db)
+
+@router.post("/employees/{employee_id}/generate_key")
+async def generate_single_key(
+    employee_id: int, payload: dict,
+    db: Session = Depends(get_db), _: User = Depends(require_superadmin)
+):
+    employee = db.query(Employee).get(employee_id)
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    node_id = payload.get("node_id")
+    protocol = payload.get("protocol", "awg")
+    suffix = payload.get("suffix", "")
+    return await _generate_single_key_for_employee(employee, node_id, protocol, suffix, db)
+
 @router.post("/employees")
 async def create_employee_as_superadmin(
     name: str,
