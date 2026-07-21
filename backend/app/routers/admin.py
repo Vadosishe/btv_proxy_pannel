@@ -399,76 +399,128 @@ def _ensure_orphan_keys_migrated(db: Session, agency_id: int = None):
     db.commit()
 
 
-async def _create_employee_with_keys(name: str, agency: Agency, template: Template, db: Session) -> dict:
-    """Create an Employee and all keys on template nodes."""
-    from app.services.amnezia import AmneziaClient
-    from app.config import settings
+@router.post("/employees/init")
+def init_employee_creation(
+    name: str, agency_id: int, template_id: int = None,
+    db: Session = Depends(get_db), _: User = Depends(require_superadmin)
+):
+    agency = db.query(Agency).get(agency_id)
+    if not agency:
+        raise HTTPException(status_code=404, detail="Agency not found")
+    tmpl = db.query(Template).get(template_id) if template_id else agency.template
+    if not tmpl or not tmpl.nodes:
+        raise HTTPException(status_code=400, detail="К компании не привязан шаблон или в шаблоне нет серверных нод.")
 
-    if not template or not template.nodes:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"В шаблоне '{template.name if template else 'Без названия'}' нет привязанных нод! Сначала добавьте ноды в шаблон."
-        )
+    employee_count = db.query(Employee).filter(Employee.agency_id == agency_id).count()
+    if employee_count >= agency.quota_awg:
+        raise HTTPException(status_code=400, detail=f"Лимит сотрудников ({agency.quota_awg}) исчерпан!")
 
+    return _init_employee_tasks(name, agency, tmpl, db)
+
+
+@router.post("/employees/{employee_id}/generate_key")
+async def generate_single_key(
+    employee_id: int, payload: dict,
+    db: Session = Depends(get_db), _: User = Depends(require_superadmin)
+):
+    employee = db.query(Employee).get(employee_id)
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    node_id = payload.get("node_id")
+    protocol = payload.get("protocol", "awg")
+    suffix = payload.get("suffix", "")
+    return await _generate_single_key_for_employee(employee, node_id, protocol, suffix, db)
+
+
+def _init_employee_tasks(name: str, agency: Agency, template: Template, db: Session) -> dict:
     employee = Employee(name=name, agency_id=agency.id)
     db.add(employee)
-    db.flush()  # get employee.id
+    db.commit()
+    db.refresh(employee)
+
+    tasks = []
+    for node in template.nodes:
+        if node.node_type == "amnezia":
+            tasks.append({"node_id": node.id, "node_name": node.name, "node_location": node.location, "protocol": "awg", "suffix": "(phone)", "label": "Телефон"})
+            tasks.append({"node_id": node.id, "node_name": node.name, "node_location": node.location, "protocol": "awg", "suffix": "(pc)", "label": "Компьютер"})
+        elif node.node_type == "xui":
+            tasks.append({"node_id": node.id, "node_name": node.name, "node_location": node.location, "protocol": "vless", "suffix": "", "label": "VLESS"})
+
+    return {
+        "employee_id": employee.id,
+        "employee_name": employee.name,
+        "secret_uuid": employee.secret_uuid,
+        "tasks": tasks
+    }
+
+
+async def _generate_single_key_for_employee(employee: Employee, node_id: int, protocol: str, suffix: str, db: Session) -> dict:
+    from app.services.amnezia import AmneziaClient, format_amnezia_vpn_link
+    from app.services.xui import XUIClient
+    from app.config import settings
+
+    node = db.query(Node).get(node_id)
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    key_name = f"{employee.name} {suffix}".strip()
+    
+    if protocol == "awg":
+        amnezia_target_url = node.amnezia_url or settings.AMNEZIA_API_URL
+        amnezia = AmneziaClient(amnezia_target_url, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
+        res = await amnezia.create_awg_client(node.amnezia_server_id or 1, key_name)
+        vpn_link = format_amnezia_vpn_link(res["vpn_link"])
+        ck = ClientKey(
+            agency_id=employee.agency_id, node_id=node.id, employee_id=employee.id,
+            employee_name=key_name, protocol=ProtocolType.AMNEZIA_WG,
+            config_content=vpn_link, remote_client_id=res["client_id"]
+        )
+        db.add(ck)
+        db.commit()
+        return {"status": "ok", "key_name": key_name, "node_name": node.name, "vpn_link": vpn_link}
+    elif protocol == "vless":
+        if not node.xui_url or not node.xui_inbound_id:
+            raise HTTPException(status_code=400, detail="Node is not configured for VLESS")
+        xui = XUIClient(node.xui_url, username=node.xui_username, password=node.xui_password, api_token=node.xui_api_token)
+        res = await xui.add_vless_client(node.xui_inbound_id, employee.name, group_name=employee.agency.name if employee.agency else "")
+        ck = ClientKey(
+            agency_id=employee.agency_id, node_id=node.id, employee_id=employee.id,
+            employee_name=employee.name, protocol=ProtocolType.VLESS,
+            config_content=res["vless_link"], remote_client_id=res["client_id"]
+        )
+        db.add(ck)
+        db.commit()
+        return {"status": "ok", "key_name": employee.name, "node_name": node.name, "vpn_link": res["vless_link"]}
+
+    raise HTTPException(status_code=400, detail="Unknown protocol")
+
+
+async def _create_employee_with_keys(name: str, agency: Agency, template: Template, db: Session) -> dict:
+    """Create an Employee and all keys on template nodes."""
+    res_tasks = _init_employee_tasks(name, agency, template, db)
+    employee = db.query(Employee).get(res_tasks["employee_id"])
 
     created_keys = []
     errors = []
 
-    awg_nodes = [n for n in template.nodes if n.node_type == "amnezia"]
-    vless_nodes = [n for n in template.nodes if n.node_type == "xui"]
-
-    # AWG: create phone + pc on each node
-    for node in awg_nodes:
-        for suffix in ["(phone)", "(pc)"]:
-            key_name = f"{name} {suffix}"
-            try:
-                amnezia_target_url = node.amnezia_url or settings.AMNEZIA_API_URL
-                amnezia = AmneziaClient(amnezia_target_url, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
-                res = await amnezia.create_awg_client(node.amnezia_server_id or 1, key_name)
-                
-                ck = ClientKey(
-                    agency_id=agency.id, node_id=node.id, employee_id=employee.id,
-                    employee_name=key_name, protocol=ProtocolType.AMNEZIA_WG,
-                    config_content=res["vpn_link"], remote_client_id=res["client_id"]
-                )
-                db.add(ck)
-                created_keys.append({"name": key_name, "node": node.name, "status": "ok"})
-            except Exception as e:
-                errors.append({"name": key_name, "node": node.name, "error": str(e)})
-
-    # VLESS: create one key per node (no phone/pc split for VLESS)
-    for node in vless_nodes:
+    for t in res_tasks["tasks"]:
         try:
-            from app.services.xui import XUIClient
-            if not node.xui_url or not node.xui_inbound_id:
-                errors.append({"name": name, "node": node.name, "error": "Node not configured for VLESS"})
-                continue
-            xui = XUIClient(node.xui_url, username=node.xui_username, password=node.xui_password, api_token=node.xui_api_token)
-            res = await xui.add_vless_client(node.xui_inbound_id, name, group_name=agency.name)
-            ck = ClientKey(
-                agency_id=agency.id, node_id=node.id, employee_id=employee.id,
-                employee_name=name, protocol=ProtocolType.VLESS,
-                config_content=res["vless_link"], remote_client_id=res["client_id"]
-            )
-            db.add(ck)
-            created_keys.append({"name": name, "node": node.name, "status": "ok"})
+            r = await _generate_single_key_for_employee(employee, t["node_id"], t["protocol"], t["suffix"], db)
+            created_keys.append(r)
         except Exception as e:
-            errors.append({"name": name, "node": node.name, "error": str(e)})
+            errors.append({"name": t["node_name"], "error": str(e)})
 
     if not created_keys:
-        db.rollback()
+        await _revoke_employee_keys(employee, db)
+        db.delete(employee)
+        db.commit()
         err_msg = "; ".join([e["error"] for e in errors]) if errors else "Неизвестная ошибка нод"
         raise HTTPException(
             status_code=400,
             detail=f"Не удалось создать ни одного ключа на серверах: {err_msg}"
         )
 
-    db.commit()
     db.refresh(employee)
-
     return {
         "employee": _employee_to_dict(employee),
         "created_keys": created_keys,

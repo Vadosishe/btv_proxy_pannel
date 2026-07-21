@@ -65,6 +65,45 @@ def list_my_employees(db: Session = Depends(get_db), current_user: User = Depend
     return result
 
 
+@router.post("/employees/init")
+def init_employee_creation_agency(
+    name: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_agency)
+):
+    agency = db.query(Agency).get(current_user.agency_id)
+    if not agency or not agency.template or not agency.template.nodes:
+        raise HTTPException(status_code=400, detail="Шаблон не настроен или в нем нет активных нод.")
+
+    employee_count = db.query(Employee).filter(Employee.agency_id == agency.id).count()
+    if employee_count >= agency.quota_awg:
+        raise HTTPException(status_code=400, detail=f"Лимит сотрудников ({agency.quota_awg}) исчерпан!")
+
+    from app.routers.admin import _init_employee_tasks
+    return _init_employee_tasks(name, agency, agency.template, db)
+
+
+@router.post("/employees/{employee_id}/generate_key")
+async def generate_single_key_agency(
+    employee_id: int, payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_agency)
+):
+    employee = db.query(Employee).filter(
+        Employee.id == employee_id,
+        Employee.agency_id == current_user.agency_id
+    ).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Сотрудник не найден")
+
+    node_id = payload.get("node_id")
+    protocol = payload.get("protocol", "awg")
+    suffix = payload.get("suffix", "")
+
+    from app.routers.admin import _generate_single_key_for_employee
+    return await _generate_single_key_for_employee(employee, node_id, protocol, suffix, db)
+
+
 @router.post("/employees")
 async def create_employee(
     name: str,
@@ -78,12 +117,10 @@ async def create_employee(
     if not agency.template:
         raise HTTPException(status_code=400, detail="Шаблон не настроен. Обратитесь к администратору.")
 
-    # Check quota (employee count)
     employee_count = db.query(Employee).filter(Employee.agency_id == agency.id).count()
     if employee_count >= agency.quota_awg:
         raise HTTPException(status_code=400, detail=f"Лимит сотрудников ({agency.quota_awg}) исчерпан!")
 
-    # Use shared helper from admin module
     from app.routers.admin import _create_employee_with_keys
     return await _create_employee_with_keys(name, agency, agency.template, db)
 

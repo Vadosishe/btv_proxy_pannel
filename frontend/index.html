@@ -489,18 +489,38 @@ async function submitEmployee() {
     const name=document.getElementById("eName").value;
     if (!name) { toast("Введите имя","err"); btn.disabled=false; return; }
     const cid=document.getElementById("eCompSel").value;
-    showProg("Создание сотрудника…","Генерация ключей на всех нодах (15-20 сек на каждый)");
+    const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
     try {
-        const h={"Authorization":`Bearer ${token}`};
-        const r=await fetch(`${API}/admin/employees?name=${encodeURIComponent(name)}&agency_id=${cid}`,{method:"POST",headers:h});
+        showProg(`Инициализация: ${name}…`,"Подготовка списка серверов");
+        const rInit=await fetch(`${API}/admin/employees/init?name=${encodeURIComponent(name)}&agency_id=${cid}`,{method:"POST",headers:h});
+        if (!rInit.ok) {
+            hideProg();
+            const err=await rInit.json();
+            toast(err.detail||"Ошибка","err");
+            btn.disabled=false;
+            return;
+        }
+        const initData=await rInit.json();
+        const empId=initData.employee_id, tasks=initData.tasks||[];
+        let createdCount=0, errCount=0;
+
+        for (let i=0; i<tasks.length; i++) {
+            const t=tasks[i];
+            const keyDesc=`${name} ${t.suffix}`.strip?`${name} ${t.suffix}`.trim():`${name} ${t.suffix}`;
+            showProg(`Создание ключа ${i+1} из ${tasks.length}: ${keyDesc}`,`Сервер: ${t.node_name} (${t.node_location}) ~15 сек`);
+            try {
+                const rKey=await fetch(`${API}/admin/employees/${empId}/generate_key`,{
+                    method:"POST", headers:h,
+                    body:JSON.stringify({node_id:t.node_id, protocol:t.protocol, suffix:t.suffix})
+                });
+                if (rKey.ok) createdCount++; else errCount++;
+            } catch(e) { errCount++; }
+        }
+
         hideProg();
-        if (r.ok) {
-            const d=await r.json();
-            const ok=d.created_keys?.length||0, errs=d.errors?.length||0;
-            closeModal();
-            toast(`Сотрудник создан! Ключей: ${ok}${errs?`, ошибок: ${errs}`:''}`, ok>0?'ok':'err');
-            loadEmployees(); loadCompanies();
-        } else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+        closeModal();
+        toast(`Сотрудник ${name} создан! Выпущено ключей: ${createdCount} из ${tasks.length}`, createdCount>0?'ok':'err');
+        loadEmployees(); loadCompanies();
     } catch(e) { hideProg(); toast("Ошибка сети","err"); }
     if (document.getElementById("eBtn")) document.getElementById("eBtn").disabled=false;
 }
@@ -724,17 +744,38 @@ async function submitEmployeeAgency() {
     const btn=document.getElementById("eBtnA"); btn.disabled=true;
     const name=document.getElementById("eNameA").value;
     if (!name) { toast("Введите имя","err"); btn.disabled=false; return; }
-    showProg(`Создание: ${name}…`,"Генерация ключей на всех серверах (15-20 сек на каждый)");
+    const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
     try {
-        const h={"Authorization":`Bearer ${token}`};
-        const r=await fetch(`${API}/agency/employees?name=${encodeURIComponent(name)}`,{method:"POST",headers:h});
+        showProg(`Инициализация: ${name}…`,"Подготовка списка серверов");
+        const rInit=await fetch(`${API}/agency/employees/init?name=${encodeURIComponent(name)}`,{method:"POST",headers:h});
+        if (!rInit.ok) {
+            hideProg();
+            const err=await rInit.json();
+            toast(err.detail||"Ошибка","err");
+            btn.disabled=false;
+            return;
+        }
+        const initData=await rInit.json();
+        const empId=initData.employee_id, tasks=initData.tasks||[];
+        let createdCount=0, errCount=0;
+
+        for (let i=0; i<tasks.length; i++) {
+            const t=tasks[i];
+            const keyDesc=`${name} ${t.suffix}`.trim();
+            showProg(`Создание ключа ${i+1} из ${tasks.length}: ${keyDesc}`,`Сервер: ${t.node_name} (${t.node_location}) ~15 сек`);
+            try {
+                const rKey=await fetch(`${API}/agency/employees/${empId}/generate_key`,{
+                    method:"POST", headers:h,
+                    body:JSON.stringify({node_id:t.node_id, protocol:t.protocol, suffix:t.suffix})
+                });
+                if (rKey.ok) createdCount++; else errCount++;
+            } catch(e) { errCount++; }
+        }
+
         hideProg();
-        if (r.ok) {
-            const d=await r.json();
-            closeModal();
-            toast(`Сотрудник ${name} создан! Ключей: ${d.created_keys?.length||0}`,"ok");
-            loadAgencyData();
-        } else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+        closeModal();
+        toast(`Сотрудник ${name} создан! Выпущено ключей: ${createdCount} из ${tasks.length}`, createdCount>0?'ok':'err');
+        loadAgencyData();
     } catch(e) { hideProg(); toast("Ошибка сети","err"); }
     if (document.getElementById("eBtnA")) document.getElementById("eBtnA").disabled=false;
 }
