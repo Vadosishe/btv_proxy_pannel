@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BigTime Tunnel — B2B VPN Orchestrator</title>
-    <meta name="description" content="BigTime Tunnel — Корпоративная платформа управления VPN доступом">
+    <meta name="description" content="BigTime Tunnel — Корпоративная панель управления VPN-ключами">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -14,852 +14,880 @@
             --bg-input: #ffffff;
             --border: #e2e8f0;
             --border-subtle: #f1f5f9;
-            
             --primary: #ff5b24;
             --primary-hover: #e04a18;
-            --primary-glow: rgba(255, 91, 36, 0.2);
+            --primary-glow: rgba(255, 91, 36, 0.18);
             --primary-soft: rgba(255, 91, 36, 0.08);
-            
-            --teal-gradient: linear-gradient(135deg, #09a1c6 0%, #00a896 100%);
-            --hero-bg: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            
-            --text-dark: #0f172a;
-            --text-main: #334155;
-            --text-muted: #64748b;
-            --text-light: #94a3b8;
-            
+            --navy: #0f172a;
+            --accent-amber: #f59e0b;
             --green: #10b981;
             --green-soft: rgba(16, 185, 129, 0.1);
             --danger: #ef4444;
             --danger-soft: rgba(239, 68, 68, 0.1);
-            --amber: #f59e0b;
-            
-            --radius-lg: 16px;
+            --text: #0f172a;
+            --text-2: #475569;
+            --text-3: #64748b;
             --radius: 12px;
             --radius-sm: 8px;
-            
-            --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
-            --shadow-md: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
-            --shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.12);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
-        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { background: var(--bg-body); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
 
-        .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+        .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
-        /* HEADER */
         .header {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 16px 28px; margin: 0 -24px 24px -24px;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
+            padding: 16px 24px; margin: 0 -24px 24px -24px;
             border-bottom: 1px solid var(--border);
             position: sticky; top: 0; z-index: 50;
-            box-shadow: var(--shadow-sm);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
         }
-        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-dark); }
-        .logo-mark {
-            width: 36px; height: 36px; border-radius: 10px;
+        .logo { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 800; letter-spacing: -0.4px; color: var(--text); text-decoration: none; }
+        .logo-hex {
+            width: 32px; height: 32px; border-radius: 8px;
             background: var(--primary);
             display: flex; align-items: center; justify-content: center;
-            color: #fff; font-weight: 800; font-size: 15px;
-            box-shadow: 0 4px 14px var(--primary-glow);
-            position: relative;
+            font-size: 14px; color: #fff; font-weight: 800;
+            box-shadow: 0 4px 12px var(--primary-glow);
         }
-        .logo-mark::after {
-            content: ''; position: absolute; top: -2px; right: -2px; width: 8px; height: 8px;
-            background: #00a896; border-radius: 50%; border: 2px solid #fff;
-        }
-        .logo-title { font-size: 19px; font-weight: 800; letter-spacing: -0.6px; color: var(--text-dark); }
-        .logo-title b { color: var(--primary); font-weight: 800; }
-        
+        .logo b { color: var(--primary); }
         .user-bar { display: flex; align-items: center; gap: 12px; }
-        .user-info { text-align: right; }
-        .user-email { color: var(--text-dark); font-size: 13px; font-weight: 600; }
+        .user-email { color: var(--text-2); font-size: 13px; font-weight: 600; }
         .role-pill {
             font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px;
-            padding: 3px 8px; border-radius: 6px; display: inline-block;
+            padding: 3px 8px; border-radius: 6px;
             background: var(--primary-soft); color: var(--primary); border: 1px solid rgba(255, 91, 36, 0.2);
         }
 
-        /* NAVIGATION TABS */
         .tabs {
-            display: flex; gap: 4px; margin: 0 0 24px 0;
+            display: flex; gap: 4px; margin: 20px 0;
             background: #e2e8f0; border-radius: var(--radius); padding: 4px;
             border: 1px solid var(--border);
         }
         .tab {
             flex: 1; text-align: center;
-            background: none; border: none; color: var(--text-muted); font-size: 13px; font-weight: 600;
-            padding: 10px 18px; border-radius: 8px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: none; border: none; color: var(--text-3); font-size: 13px; font-weight: 600;
+            padding: 10px 16px; border-radius: 8px; cursor: pointer; transition: 0.15s;
         }
-        .tab:hover { color: var(--text-dark); background: rgba(255,255,255,0.5); }
-        .tab.on { background: #ffffff; color: var(--primary); font-weight: 700; box-shadow: var(--shadow-sm); }
+        .tab:hover { color: var(--text); background: rgba(255,255,255,0.5); }
+        .tab.on { background: #ffffff; color: var(--primary); font-weight: 700; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08); }
 
-        /* CARDS & STATS */
-        .card {
-            background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: var(--radius-lg); padding: 24px; margin-bottom: 20px;
-            box-shadow: var(--shadow-md);
-        }
-        .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 16px; }
-        .card-head h3 { font-size: 16px; font-weight: 700; color: var(--text-dark); letter-spacing: -0.3px; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05); }
+        .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; }
+        .card-head h3 { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; color: var(--text); }
 
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 24px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
         .stat {
-            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
-            padding: 18px 20px; transition: transform 0.2s, box-shadow 0.2s; box-shadow: var(--shadow-sm);
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+            padding: 16px 18px; transition: 0.15s; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
         }
-        .stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--primary); }
-        .stat-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 6px; }
-        .stat-num { font-size: 30px; font-weight: 800; color: var(--primary); letter-spacing: -1px; }
-        .stat-num.dark { color: var(--text-dark); }
+        .stat:hover { border-color: var(--primary); }
+        .stat-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; margin-bottom: 4px; }
+        .stat-num { font-size: 28px; font-weight: 800; color: var(--primary); letter-spacing: -1px; }
+        .stat-num.white { color: var(--text); }
 
-        /* DOWNLOAD & APPS LINKS BANNER */
-        .apps-banner {
-            background: var(--teal-gradient); color: #fff; border-radius: var(--radius-lg);
-            padding: 24px 28px; margin-bottom: 24px; box-shadow: 0 10px 25px -5px rgba(9, 161, 198, 0.3);
-            position: relative; overflow: hidden;
-        }
-        .apps-banner h2 { font-size: 20px; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.4px; }
-        .apps-banner p { font-size: 13px; opacity: 0.95; max-width: 700px; margin-bottom: 18px; line-height: 1.5; }
-        .apps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
-        .app-btn {
-            background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px); color: #fff; text-decoration: none; padding: 12px 16px;
-            border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; display: flex;
-            align-items: center; gap: 10px; transition: all 0.2s;
-        }
-        .app-btn:hover { background: #ffffff; color: #00a896; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .app-btn svg { width: 18px; height: 18px; flex-shrink: 0; fill: currentColor; }
-
-        /* TABLE STYLING */
         table { width: 100%; border-collapse: separate; border-spacing: 0; }
-        th { text-align: left; padding: 12px 16px; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 2px solid var(--border-subtle); background: #f8fafc; }
-        td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; color: var(--text-main); }
-        tbody tr { transition: background 0.15s; }
+        th { text-align: left; padding: 10px 14px; font-size: 11px; color: var(--text-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border-subtle); background: #f8fafc; }
+        td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; color: var(--text-2); }
+        tbody tr { transition: background 0.1s; }
         tbody tr:hover { background: #f8fafc; }
         tbody tr:last-child td { border-bottom: none; }
 
-        /* FORMS & INPUTS */
-        label { display: block; font-size: 12px; font-weight: 700; color: var(--text-dark); margin-bottom: 6px; margin-top: 14px; }
+        label { display: block; font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; margin-top: 12px; }
         label:first-child { margin-top: 0; }
-        input, select, textarea {
-            width: 100%; padding: 10px 14px; border-radius: var(--radius-sm);
+        input, select {
+            width: 100%; padding: 10px 12px; border-radius: var(--radius-sm);
             border: 1px solid var(--border); background: var(--bg-input);
-            color: var(--text-dark); font-size: 13px; font-weight: 500; outline: none; transition: all 0.15s;
+            color: var(--text); font-size: 13px; font-weight: 500; outline: none; transition: 0.15s;
         }
-        input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
-        input::placeholder { color: var(--text-light); }
+        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+        input::placeholder { color: #94a3b8; }
+        textarea {
+            width: 100%; padding: 10px 12px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: var(--bg-input);
+            color: var(--text); font-size: 13px; font-weight: 500; outline: none; transition: 0.15s;
+            resize: vertical; min-height: 100px; font-family: 'Inter', monospace;
+        }
+        textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
 
-        /* BUTTONS */
-        button, .btn-link {
-            padding: 9px 18px; border-radius: var(--radius-sm); border: none;
-            cursor: pointer; transition: all 0.2s; font-size: 13px; font-weight: 700;
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;
+        button {
+            padding: 9px 16px; border-radius: var(--radius-sm); border: none;
+            cursor: pointer; transition: 0.15s; font-size: 13px; font-weight: 700;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
         }
-        .btn { background: var(--primary); color: #fff; box-shadow: 0 2px 10px var(--primary-glow); }
-        .btn:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 14px var(--primary-glow); }
+        .btn { background: var(--primary); color: #fff; box-shadow: 0 2px 8px var(--primary-glow); }
+        .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .btn-copy { background: #0f172a; color: #fff; }
-        .btn-copy:hover { background: #1e293b; color: #fff; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2); }
-        .btn-copy.copied { background: var(--green) !important; color: #fff !important; }
-        
         .btn-danger { background: var(--danger); color: #fff; }
         .btn-danger:hover { background: #dc2626; }
-        .btn-ghost { background: #f1f5f9; color: var(--text-dark); border: 1px solid var(--border); }
-        .btn-ghost:hover { background: #e2e8f0; }
+        .btn-ghost { background: #f1f5f9; color: var(--text); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: #e2e8f0; color: var(--text); }
         .btn-sm { padding: 6px 12px; font-size: 12px; }
-        .btn-xs { padding: 4px 10px; font-size: 11px; }
+        .btn-xs { padding: 4px 8px; font-size: 11px; }
+        .btn-w { width: 100%; justify-content: center; margin-top: 14px; }
 
-        /* BADGES */
         .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
         .b-awg { background: var(--primary-soft); color: var(--primary); }
-        .b-vless { background: rgba(245, 158, 11, 0.1); color: var(--amber); }
+        .b-vless { background: rgba(245,158,11,0.1); color: var(--accent-amber); }
         .b-on { background: var(--green-soft); color: var(--green); }
-        .b-off { background: var(--danger-soft); color: var(--danger); }
+        .b-off { background: var(--danger-soft); color: #ef4444; }
+        .b-tmpl { background: rgba(9,161,198,0.1); color: #09a1c6; }
 
-        /* MODALS & OVERLAYS */
+        .ncard { background: var(--bg-card-alt); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 12px; transition: 0.15s; }
+        .ncard:hover { border-color: var(--primary); }
+        .ncard-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
+        .ncard-info { font-size: 12px; color: var(--text-3); }
+
         .overlay {
             position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45);
             backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center;
-            z-index: 100; animation: fadein 0.2s; padding: 20px;
+            z-index: 100; animation: fadein 0.15s; padding: 20px;
         }
         .modal {
             background: #ffffff; border: 1px solid var(--border);
-            border-radius: var(--radius-lg); padding: 28px; width: 100%; max-width: 520px;
-            max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: slideup 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            border-radius: var(--radius); padding: 28px; width: 100%; max-width: 480px;
+            max-height: 90vh; overflow-y: auto; animation: slideup 0.2s; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
         }
-        .modal h2 { font-size: 18px; font-weight: 800; color: var(--text-dark); margin-bottom: 4px; letter-spacing: -0.4px; }
-        .modal .sub { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+        .modal h2 { font-size: 18px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.3px; color: var(--text); }
+        .modal .sub { font-size: 12px; color: var(--text-3); margin-bottom: 18px; }
+        .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btns { display: flex; gap: 8px; margin-top: 18px; }
+        .btns > * { flex: 1; }
 
         @keyframes fadein { from{opacity:0} to{opacity:1} }
-        @keyframes slideup { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes slideup { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 
-        /* TOAST NOTIFICATIONS */
+        .prog-overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center;
+            flex-direction: column; z-index: 200; animation: fadein 0.15s; color: #fff;
+        }
+        .prog-ring { width: 44px; height: 44px; border: 3px solid rgba(255, 91, 36, 0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 14px; }
+        .prog-text { font-size: 14px; font-weight: 700; }
+        .prog-sub { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+
+        .spin-wrap { display: flex; align-items: center; justify-content: center; padding: 28px 0; gap: 8px; color: var(--primary); font-size: 13px; font-weight: 600; }
+        .spin { width: 16px; height: 16px; border: 2px solid rgba(255, 91, 36, 0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+        .spin-sm { width: 12px; height: 12px; border-width: 1.5px; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+
         .toasts { position: fixed; top: 20px; right: 20px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
         .toast {
             padding: 12px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
-            display: flex; align-items: center; gap: 10px; min-width: 280px;
-            box-shadow: var(--shadow-lg); animation: toastin 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            border: 1px solid transparent;
+            display: flex; align-items: center; gap: 8px; min-width: 280px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1); animation: toastin 0.25s;
+            border: 1px solid var(--border);
         }
         .t-ok { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
         .t-err { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
         .t-info { background: #fff7ed; color: #9a3412; border-color: #ffedd5; }
-        @keyframes toastin { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes toastin { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
 
-        /* KEY CARD FOR CLIENT PORTAL */
-        .key-card {
-            background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-lg);
-            padding: 22px; margin-bottom: 16px; box-shadow: var(--shadow-md); transition: border-color 0.2s;
+        .welcome {
+            background: linear-gradient(135deg, rgba(255, 91, 36, 0.06) 0%, transparent 70%);
+            border: 1px solid rgba(255, 91, 36, 0.12); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 20px;
         }
-        .key-card:hover { border-color: var(--primary); }
-        .key-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .key-title { font-size: 15px; font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 8px; }
-        .key-box {
-            background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm);
-            padding: 10px 14px; font-family: monospace; font-size: 12px; color: var(--text-muted);
-            word-break: break-all; margin: 10px 0; max-height: 70px; overflow-y: auto;
-        }
+        .welcome h2 { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 2px; color: var(--text); }
+        .welcome p { font-size: 13px; color: var(--text-2); }
+
+        .empty { text-align: center; padding: 32px 16px; color: var(--text-3); }
+        .empty-ico { font-size: 28px; margin-bottom: 8px; opacity: 0.5; }
+        .empty-txt { font-size: 13px; }
 
         .hide { display: none !important; }
         .flex { display: flex; gap: 8px; align-items: center; }
-        .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .btns { display: flex; gap: 10px; margin-top: 20px; }
-        .btns > * { flex: 1; }
+        a { color: var(--primary); text-decoration: none; font-weight: 600; }
+        a:hover { text-decoration: underline; }
+
+        .chk-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+        .chk-item { display: flex; align-items: center; gap: 6px; background: var(--bg-input); padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 12px; cursor: pointer; }
+        .chk-item:hover { border-color: var(--primary); }
+        .chk-item input { width: auto; margin: 0; }
+
+        @media(max-width:768px) {
+            .wrap { padding: 0 12px; }
+            .header { padding: 12px; margin: 0 -12px 16px -12px; }
+            .tabs { overflow-x: auto; }
+            .row2 { grid-template-columns: 1fr; }
+            .card-head { flex-wrap: wrap; }
+            th, td { padding: 8px; }
+        }
     </style>
 </head>
 <body>
 
 <div class="wrap">
-    <!-- HEADER -->
-    <header class="header">
-        <a href="#" class="logo">
-            <div class="logo-mark">BT</div>
-            <div class="logo-title">BigTime <b>Tunnel</b></div>
+    <div class="header">
+        <a href="/" class="logo">
+            <div class="logo-hex">BT</div>
+            BigTime <b>Tunnel</b>
         </a>
-        <div class="user-bar hide" id="userBar">
-            <div class="user-info">
-                <div class="user-email" id="userEmail">admin@scalebox.it</div>
-                <div class="role-pill" id="userRole">SUPERADMIN</div>
-            </div>
-            <button class="btn-ghost btn-sm" onclick="logout()">Выйти</button>
+        <div id="userInfo" class="user-bar hide">
+            <span id="rolePill" class="role-pill"></span>
+            <span id="userEmail" class="user-email"></span>
+            <button onclick="logout()" class="btn-ghost btn-sm">Выйти</button>
         </div>
-    </header>
-
-    <!-- AUTH SECTION -->
-    <div id="authSection" class="card" style="max-width: 420px; margin: 60px auto;">
-        <div class="card-head">
-            <h3>Вход в систему</h3>
-        </div>
-        <form onsubmit="handleLogin(event)">
-            <label>Логин / Email</label>
-            <input type="text" id="loginUsername" placeholder="admin@scalebox.it" required>
-            
-            <label>Пароль</label>
-            <input type="password" id="loginPassword" placeholder="••••••••" required>
-            
-            <button type="submit" class="btn btn-w" style="margin-top: 20px;">Войти в BigTime Tunnel</button>
-        </form>
     </div>
 
-    <!-- MAIN DASHBOARD -->
-    <div id="dashboardSection" class="hide">
-        
-        <!-- TABS NAVIGATION -->
-        <div class="tabs" id="navTabs">
-            <button class="tab on" onclick="switchTab('myKeys')">📱 Мои VPN Ключи</button>
-            <button class="tab hide" id="tabEmployees" onclick="switchTab('employees')">👥 Сотрудники</button>
-            <button class="tab hide" id="tabAgencies" onclick="switchTab('agencies')">🏢 Агентства</button>
-            <button class="tab hide" id="tabNodes" onclick="switchTab('nodes')">🖥️ Ноды / Сервера</button>
-        </div>
-
-        <!-- DOWNLOAD & APPS LINKS BANNER -->
-        <div class="apps-banner">
-            <h2>Приложения & Инструкция по подключению</h2>
-            <p>Скачайте официальный VPN-клиент на ваше устройство, скопируйте ключ импорта и вставьте его в приложение для быстрой настройки безопасного туннеля.</p>
-            <div class="apps-grid">
-                <a href="https://amnezia.org" target="_blank" class="app-btn">
-                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-                    Amnezia.org (Официальный)
-                </a>
-                <a href="https://storage.googleapis.com/amnezia/amnezia.org" target="_blank" class="app-btn">
-                    <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
-                    Зеркало Amnezia (Google Cloud)
-                </a>
-                <a href="https://dfvpn.com/" target="_blank" class="app-btn">
-                    <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.84c.66-.8 1.11-1.92.99-3.04-.96.04-2.12.64-2.8 1.44-.61.71-1.14 1.86-1 2.98 1.07.08 2.15-.57 2.81-1.38z"/></svg>
-                    defaultVPN (App Store iOS)
-                </a>
-                <a href="https://github.com/amnezia-vpn/amnezia-client/releases" target="_blank" class="app-btn">
-                    <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-                    GitHub Releases (Desktop/APK)
-                </a>
+    <!-- AUTH -->
+    <div id="authSection" style="max-width: 400px; margin: 60px auto;">
+        <div style="text-align:center; margin-bottom: 28px;">
+            <div class="logo" style="justify-content:center; font-size: 22px; margin-bottom: 6px;">
+                <div class="logo-hex" style="width:36px;height:36px;font-size:16px;">BT</div>
+                BigTime <b>Tunnel</b>
             </div>
+            <p style="font-size:13px; color:var(--text-3);">Панель управления VPN-ключами</p>
         </div>
-
-        <!-- MY KEYS TAB -->
-        <div id="tabContentMyKeys">
-            <div class="card-head">
-                <h3>Активные VPN Туннели</h3>
-            </div>
-            <div id="myKeysList">
-                <div class="spin-wrap"><div class="spin"></div> Загрузка ключей...</div>
-            </div>
-        </div>
-
-        <!-- EMPLOYEES TAB -->
-        <div id="tabContentEmployees" class="hide">
-            <div class="card">
-                <div class="card-head">
-                    <h3>Управление сотрудниками</h3>
-                    <button class="btn btn-sm" onclick="openModal('modalCreateEmployee')">+ Добавить сотрудника</button>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Имя</th>
-                            <th>Email</th>
-                            <th>Агентство</th>
-                            <th>Должность</th>
-                            <th>Ключей</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody id="employeesTable">
-                        <tr><td colspan="7"><div class="spin-wrap"><div class="spin"></div> Загрузка...</div></td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- AGENCIES TAB -->
-        <div id="tabContentAgencies" class="hide">
-            <div class="card">
-                <div class="card-head">
-                    <h3>Список Агентств & Компаний</h3>
-                    <button class="btn btn-sm" onclick="openModal('modalCreateAgency')">+ Создать Агентство</button>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Название</th>
-                            <th>Сотрудников</th>
-                            <th>Дата создания</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody id="agenciesTable">
-                        <tr><td colspan="5"><div class="spin-wrap"><div class="spin"></div> Загрузка...</div></td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- NODES TAB -->
-        <div id="tabContentNodes" class="hide">
-            <div class="card">
-                <div class="card-head">
-                    <h3>Сервера & Сервисные Ноды</h3>
-                    <button class="btn btn-sm" onclick="openModal('modalCreateNode')">+ Подключить Ноду</button>
-                </div>
-                <div id="nodesList">
-                    <div class="spin-wrap"><div class="spin"></div> Загрузка нод...</div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-<!-- MODAL: CREATE EMPLOYEE -->
-<div id="modalCreateEmployee" class="overlay hide">
-    <div class="modal">
-        <h2>Новый сотрудник</h2>
-        <div class="sub">Создайте учетную запись сотрудника для привязки VPN ключей.</div>
-        <form onsubmit="handleCreateEmployee(event)">
-            <label>ФИО / Имя сотрудника</label>
-            <input type="text" id="empName" placeholder="Иван Иванов" required>
-            
+        <div class="card">
+            <h3 style="font-size:16px; font-weight:800; margin-bottom:16px; text-align:center;">Вход в систему</h3>
             <label>Email</label>
-            <input type="email" id="empEmail" placeholder="ivan@company.ru">
-            
-            <label>Должность</label>
-            <input type="text" id="empPosition" placeholder="Инженер">
-            
-            <div class="btns">
-                <button type="button" class="btn-ghost" onclick="closeModal('modalCreateEmployee')">Отмена</button>
-                <button type="submit" class="btn">Создать сотрудника</button>
-            </div>
-        </form>
+            <input type="email" id="loginEmail" placeholder="admin@company.com">
+            <label>Пароль</label>
+            <input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+            <button onclick="login()" class="btn btn-w" style="padding:11px;">Войти</button>
+            <p id="authError" style="color:var(--danger); font-size:12px; text-align:center; margin-top:10px;" class="hide"></p>
+        </div>
     </div>
-</div>
 
-<!-- MODAL: CREATE AGENCY -->
-<div id="modalCreateAgency" class="overlay hide">
-    <div class="modal">
-        <h2>Новое Агентство</h2>
-        <div class="sub">Зарегистрируйте клиентскую компанию B2B.</div>
-        <form onsubmit="handleCreateAgency(event)">
-            <label>Название компании</label>
-            <input type="text" id="agencyName" placeholder="ООО Вектор" required>
-            
-            <div class="btns">
-                <button type="button" class="btn-ghost" onclick="closeModal('modalCreateAgency')">Отмена</button>
-                <button type="submit" class="btn">Создать</button>
-            </div>
-        </form>
-    </div>
-</div>
+    <!-- DASHBOARD -->
+    <div id="dash" class="hide">
+        <!-- SUPERADMIN TABS -->
+        <div id="adminTabs" class="tabs hide">
+            <button class="tab on" onclick="switchTab('tabCompanies',this)">🏢 Компании</button>
+            <button class="tab" onclick="switchTab('tabEmployees',this)">👥 Сотрудники</button>
+            <button class="tab" onclick="switchTab('tabTemplates',this)">📋 Шаблоны</button>
+            <button class="tab" onclick="switchTab('tabNodes',this)">🖥️ Ноды</button>
+        </div>
 
-<!-- MODAL: CREATE NODE -->
-<div id="modalCreateNode" class="overlay hide">
-    <div class="modal">
-        <h2>Подключить VPN Сервер (Ноду)</h2>
-        <div class="sub">Добавьте новую локацию или мастер-панель Amnezia / 3X-UI.</div>
-        <form onsubmit="handleCreateNode(event)">
-            <label>Название локации / Сервера</label>
-            <input type="text" id="nodeName" placeholder="Timeweb BTV" required>
-            
-            <label>Тип интеграции</label>
-            <select id="nodeType">
-                <option value="amneziavpnphp">AmneziaWG v2 (amneziavpnphp)</option>
-                <option value="3xui">3X-UI v3 (VLESS / ShadowSocks)</option>
-            </select>
-            
-            <label>API URL сервера</label>
-            <input type="text" id="nodeUrl" placeholder="http://5.129.229.25:8082" required>
-            
-            <div class="row2">
-                <div>
-                    <label>Логин API</label>
-                    <input type="text" id="nodeUser" placeholder="admin@amnez.ia">
+        <!-- TAB: COMPANIES (superadmin) -->
+        <div id="tabCompanies">
+            <div id="adminView" class="hide">
+                <div class="stats" id="dashStats">
+                    <div class="stat"><div class="stat-label">Компаний</div><div class="stat-num white" id="sCompanies"><span class="spin spin-sm"></span></div></div>
+                    <div class="stat"><div class="stat-label">Сотрудников</div><div class="stat-num" id="sEmployees"><span class="spin spin-sm"></span></div></div>
+                    <div class="stat"><div class="stat-label">Серверных нод</div><div class="stat-num white" id="sNodes"><span class="spin spin-sm"></span></div></div>
                 </div>
-                <div>
-                    <label>Пароль API</label>
-                    <input type="password" id="nodePass" placeholder="••••••••">
+                <div class="card">
+                    <div class="card-head"><h3>Управление компаниями</h3></div>
+                    <div class="row2" style="margin-bottom:16px;">
+                        <div class="card" style="padding:16px; margin:0;">
+                            <div style="font-size:13px; font-weight:700; color:var(--primary); margin-bottom:10px;">+ Создать компанию</div>
+                            <label>Название</label>
+                            <input type="text" id="newName" placeholder="ООО Компания">
+                            <div class="row2" style="margin-top:8px;">
+                                <div><label>Квота сотрудников</label><input type="number" id="newQA" placeholder="20"></div>
+                                <div><label>Шаблон</label><select id="newTmpl"></select></div>
+                            </div>
+                            <button onclick="createCompany()" class="btn btn-sm btn-w">Создать</button>
+                        </div>
+                        <div class="card" style="padding:16px; margin:0;">
+                            <div style="font-size:13px; font-weight:700; color:var(--primary); margin-bottom:10px;">+ Зарегистрировать админа</div>
+                            <label>Email</label>
+                            <input type="email" id="newUEmail" placeholder="admin@company.com">
+                            <label>Пароль</label>
+                            <input type="password" id="newUPass" placeholder="••••••••">
+                            <label>Компания</label>
+                            <select id="newUCompany"></select>
+                            <button onclick="registerAdmin()" class="btn btn-sm btn-w">Зарегистрировать</button>
+                        </div>
+                    </div>
+                    <div style="font-size:11px; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">Список компаний</div>
+                    <table><thead><tr><th>ID</th><th>Название</th><th>Шаблон</th><th>Квота</th><th>Создана</th><th>Действия</th></tr></thead>
+                    <tbody id="companiesTbody"></tbody></table>
                 </div>
             </div>
+        </div>
 
-            <div class="btns">
-                <button type="button" class="btn-ghost" onclick="closeModal('modalCreateNode')">Отмена</button>
-                <button type="submit" class="btn">Подключить Ноду</button>
+        <!-- TAB: EMPLOYEES (superadmin) -->
+        <div id="tabEmployees" class="card hide">
+            <div class="card-head">
+                <h3>👥 Все сотрудники</h3>
+                <div class="flex">
+                    <button onclick="openBulkEmpModal()" class="btn-ghost btn-sm">📋 Массовый выпуск</button>
+                    <button onclick="openEmpModal()" class="btn btn-sm">+ Добавить сотрудника</button>
+                </div>
             </div>
-        </form>
-    </div>
-</div>
-
-<!-- MODAL: ISSUE KEY -->
-<div id="modalIssueKey" class="overlay hide">
-    <div class="modal">
-        <h2>Выпустить VPN Ключ</h2>
-        <div class="sub">Сгенерируйте туннель для выбранного сотрудника.</div>
-        <form onsubmit="handleIssueKey(event)">
-            <input type="hidden" id="issueEmpId">
-            
-            <label>Сотрудник</label>
-            <input type="text" id="issueEmpName" readonly style="background:#f1f5f9; font-weight:700;">
-            
-            <label>Выберите Сервер (Ноду)</label>
-            <select id="issueNodeId" required></select>
-            
-            <label>Тип устройства</label>
-            <select id="issueDeviceType">
-                <option value="pc">💻 Компьютер (PC / Mac)</option>
-                <option value="phone">📱 Телефон (iOS / Android)</option>
-            </select>
-
-            <div class="btns">
-                <button type="button" class="btn-ghost" onclick="closeModal('modalIssueKey')">Отмена</button>
-                <button type="submit" class="btn">Выпустить Ключ</button>
+            <div class="flex" style="margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                <input type="text" id="eSearch" style="flex:1; min-width:200px;" placeholder="🔍 Поиск..." oninput="filterEmployees()">
+                <select id="eCompany" style="width:180px;" onchange="filterEmployees()"><option value="">Все компании</option></select>
             </div>
-        </form>
+            <table><thead><tr><th>Компания</th><th>Сотрудник</th><th>Ключей</th><th>Ссылка</th><th>Дата</th><th>Действия</th></tr></thead>
+            <tbody id="empTbody"></tbody></table>
+        </div>
+
+        <!-- TAB: TEMPLATES (superadmin) -->
+        <div id="tabTemplates" class="card hide">
+            <div class="card-head">
+                <h3>📋 Шаблоны доступа</h3>
+                <button onclick="openTmplModal()" class="btn btn-sm">+ Создать шаблон</button>
+            </div>
+            <div id="tmplList"></div>
+        </div>
+
+        <!-- TAB: NODES (superadmin) -->
+        <div id="tabNodes" class="card hide">
+            <div class="card-head">
+                <h3>Серверные ноды</h3>
+                <button onclick="openNodeModal()" class="btn btn-sm">+ Добавить ноду</button>
+            </div>
+            <div id="nodesList"></div>
+        </div>
+
+        <!-- COMPANY ADMIN VIEW -->
+        <div id="companyView" class="hide">
+            <div class="welcome">
+                <h2 id="cTitle">Моя компания</h2>
+                <p>Управление VPN-доступом сотрудников</p>
+            </div>
+            <div class="stats">
+                <div class="stat"><div class="stat-label">Сотрудников</div><div class="stat-num" id="cEmpCount">0 / 0</div></div>
+                <div class="stat"><div class="stat-label">Шаблон</div><div class="stat-num white" id="cTmplName" style="font-size:16px;">—</div></div>
+            </div>
+            <div class="card">
+                <div class="card-head">
+                    <h3>Сотрудники</h3>
+                    <div class="flex">
+                        <button onclick="openBulkEmpModalAgency()" class="btn-ghost btn-sm">📋 Массовое добавление</button>
+                        <button onclick="openEmpModalAgency()" class="btn btn-sm">+ Добавить</button>
+                    </div>
+                </div>
+                <table><thead><tr><th>Сотрудник</th><th>Ключей</th><th>Ссылка</th><th>Действия</th></tr></thead>
+                <tbody id="cEmpTbody"></tbody></table>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- MODAL: VIEW QR CODE -->
-<div id="modalViewQr" class="overlay hide">
-    <div class="modal" style="text-align: center;">
-        <h2 id="qrTitle">QR-Код Импорта</h2>
-        <div class="sub" id="qrSub">Отсканируйте в приложении AmneziaVPN / defaultVPN</div>
-        <div id="qrImageWrap" style="margin: 20px auto; display: flex; justify-content: center;"></div>
-        <button class="btn btn-copy btn-w" id="qrCopyBtn" onclick="copyModalKey()">Скопировать ключ</button>
-        <button class="btn-ghost btn-w" onclick="closeModal('modalViewQr')" style="margin-top: 8px;">Закрыть</button>
-    </div>
-</div>
-
-<!-- TOAST CONTAINER -->
 <div class="toasts" id="toasts"></div>
+<div id="modalRoot"></div>
+<div id="progRoot"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script>
-    let state = {
-        token: localStorage.getItem('token') || '',
-        user: JSON.parse(localStorage.getItem('user') || '{}'),
-        myKeys: [],
-        employees: [],
-        agencies: [],
-        nodes: [],
-        currentQrLink: ''
-    };
+const API = "/api";
+let token = localStorage.getItem("token"), role = localStorage.getItem("role");
+let employeesCache = [], templatesCache = [], nodesCache = [];
 
-    window.onload = () => {
-        if (state.token && state.user.role) {
-            initApp();
+if (token) init();
+
+/* ===== TOAST ===== */
+function toast(msg, type='info') {
+    const c = document.getElementById('toasts'), t = document.createElement('div');
+    const ico = {ok:'✓', err:'✕', info:'ℹ'}; type = type==='success'?'ok':type==='error'?'err':type;
+    t.className = `toast t-${type}`; t.innerHTML = `<span>${ico[type]||''}</span> ${msg}`;
+    c.appendChild(t); setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.remove(),200); }, 3000);
+}
+
+/* ===== PROGRESS ===== */
+function showProg(t,s) { document.getElementById('progRoot').innerHTML = `<div class="prog-overlay"><div class="prog-ring"></div><div class="prog-text">${t}</div>${s?`<div class="prog-sub">${s}</div>`:''}</div>`; }
+function hideProg() { document.getElementById('progRoot').innerHTML = ''; }
+
+/* ===== MODAL ===== */
+function modal(html) { document.getElementById('modalRoot').innerHTML = `<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`; }
+function closeModal() { document.getElementById('modalRoot').innerHTML = ''; }
+
+/* ===== AUTH ===== */
+async function login() {
+    const e = document.getElementById("loginEmail").value, p = document.getElementById("loginPassword").value;
+    const fd = new FormData(); fd.append("username",e); fd.append("password",p);
+    try {
+        const r = await fetch(`${API}/auth/login`, {method:"POST", body:fd});
+        if (r.ok) {
+            const d = await r.json(); token=d.access_token; role=d.role;
+            localStorage.setItem("token",token); localStorage.setItem("role",role); localStorage.setItem("email",e);
+            init();
         } else {
-            showSection('authSection');
+            document.getElementById("authError").innerText="Неверный логин или пароль";
+            document.getElementById("authError").classList.remove("hide");
         }
-    };
-
-    function showToast(msg, type='info') {
-        const wrap = document.getElementById('toasts');
-        const t = document.createElement('div');
-        t.className = `toast t-${type}`;
-        t.innerHTML = msg;
-        wrap.appendChild(t);
-        setTimeout(() => t.remove(), 4000);
+    } catch(err) {
+        document.getElementById("authError").innerText="Ошибка подключения к серверу";
+        document.getElementById("authError").classList.remove("hide");
     }
+}
+function logout() { localStorage.clear(); location.reload(); }
 
-    async function apiReq(url, method='GET', data=null, silent=false) {
-        if (!url.startsWith('/api/')) url = '/api' + (url.startsWith('/') ? '' : '/') + url;
-        const headers = { 'Content-Type': 'application/json' };
-        if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
-        
-        try {
-            const opts = { method, headers };
-            if (data) opts.body = JSON.stringify(data);
-            const res = await fetch(url, opts);
-            if (res.status === 401) {
-                logout(true);
-                throw new Error('Сессия истекла');
-            }
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.detail || 'Ошибка сервера');
-            return json;
-        } catch(e) {
-            if (!silent) showToast(e.message, 'err');
-            throw e;
-        }
+function init() {
+    document.getElementById("authSection").classList.add("hide");
+    document.getElementById("dash").classList.remove("hide");
+    document.getElementById("userInfo").classList.remove("hide");
+    document.getElementById("userEmail").innerText = localStorage.getItem("email")||"";
+    
+    const rClean = (role || "").toLowerCase();
+    document.getElementById("rolePill").innerText = rClean==="superadmin"?"SuperAdmin":"Админ";
+    
+    if (rClean==="superadmin") {
+        document.getElementById("adminTabs").classList.remove("hide");
+        document.getElementById("adminView").classList.remove("hide");
+        loadCompanies(); loadEmployees(); loadTemplates(); loadNodes();
+    } else {
+        document.getElementById("companyView").classList.remove("hide");
+        loadAgencyData();
     }
+}
 
-    async function handleLogin(e) {
-        e.preventDefault();
-        const u = document.getElementById('loginUsername').value;
-        const p = document.getElementById('loginPassword').value;
-        
-        try {
-            const formData = new URLSearchParams();
-            formData.append('username', u);
-            formData.append('password', p);
-            
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: formData
+function switchTab(id, btn) {
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));
+    btn.classList.add("on");
+    ["tabCompanies","tabEmployees","tabTemplates","tabNodes"].forEach(t=>document.getElementById(t).classList.add("hide"));
+    document.getElementById(id).classList.remove("hide");
+    if (id==="tabEmployees") loadEmployees();
+    if (id==="tabTemplates") loadTemplates();
+    if (id==="tabNodes") loadNodes();
+}
+
+/* ===== SUPERADMIN: COMPANIES ===== */
+async function loadCompanies() {
+    const h={"Authorization":`Bearer ${token}`}, tbody=document.getElementById("companiesTbody");
+    tbody.innerHTML=`<tr><td colspan="6"><div class="spin-wrap"><span class="spin"></span>Загрузка...</div></td></tr>`;
+    try {
+        const r = await fetch(`${API}/admin/agencies`,{headers:h});
+        if (r.ok) {
+            const list=await r.json();
+            const sel=document.getElementById("newUCompany"), eC=document.getElementById("eCompany");
+            sel.innerHTML=""; eC.innerHTML=`<option value="">Все компании</option>`;
+            tbody.innerHTML=""; document.getElementById("sCompanies").innerText=list.length;
+            if (!list.length) { tbody.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-ico">🏢</div><div class="empty-txt">Нет компаний</div></div></td></tr>`; return; }
+            list.forEach(a => {
+                sel.innerHTML+=`<option value="${a.id}">${a.name}</option>`;
+                eC.innerHTML+=`<option value="${a.name}">${a.name}</option>`;
+                const tmplBadge = a.template_name ? `<span class="badge b-tmpl">${a.template_name}</span>` : `<span style="color:var(--text-3);font-size:11px;">—</span>`;
+                tbody.innerHTML+=`<tr><td style="color:var(--text-3)">${a.id}</td><td><strong>${a.name}</strong></td><td>${tmplBadge}</td><td>${a.used_awg}/${a.quota_awg} сотр.</td><td style="color:var(--text-3)">${new Date(a.created_at).toLocaleDateString('ru-RU')}</td><td class="flex"><button onclick="openAssignTmpl(${a.id},'${a.name}')" class="btn-ghost btn-xs">⚙️</button><button onclick="delCompany(${a.id})" class="btn-danger btn-xs">Удалить</button></td></tr>`;
             });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.detail || 'Неверный логин или пароль');
-            
-            state.token = json.access_token;
-            state.user = { email: u, role: json.role, agency_id: json.agency_id };
-            localStorage.setItem('token', state.token);
-            localStorage.setItem('user', JSON.stringify(state.user));
-            
-            initApp();
-            showToast(`Успешный вход в BigTime Tunnel!`, 'ok');
-        } catch(err) {
-            showToast(err.message, 'err');
         }
-    }
+    } catch(e) { tbody.innerHTML=`<tr><td colspan="6"><div class="spin-wrap" style="color:var(--danger)">Ошибка</div></td></tr>`; }
+}
 
-    function logout(silent=false) {
-        state.token = '';
-        state.user = {};
-        localStorage.clear();
-        document.getElementById('userBar').classList.add('hide');
-        showSection('authSection');
-        if (!silent) showToast('Вы вышли из системы', 'info');
-    }
-
-    function initApp() {
-        document.getElementById('userEmail').innerText = state.user.email;
-        document.getElementById('userRole').innerText = (state.user.role || '').toUpperCase();
-        document.getElementById('userBar').classList.remove('hide');
-        
-        // Show role tabs
-        const role = (state.user.role || '').toUpperCase();
-        if (role === 'SUPERADMIN' || role === 'AGENCY' || role === 'AGENCY_ADMIN') {
-            document.getElementById('tabEmployees').classList.remove('hide');
+/* ===== SUPERADMIN: EMPLOYEES ===== */
+async function loadEmployees() {
+    const h={"Authorization":`Bearer ${token}`}, tbody=document.getElementById("empTbody");
+    tbody.innerHTML=`<tr><td colspan="6"><div class="spin-wrap"><span class="spin"></span>Загрузка...</div></td></tr>`;
+    try {
+        const r=await fetch(`${API}/admin/employees`,{headers:h});
+        if (r.ok) {
+            employeesCache=await r.json();
+            document.getElementById("sEmployees").innerText=employeesCache.length;
+            renderEmployees(employeesCache);
         }
-        if (role === 'SUPERADMIN') {
-            document.getElementById('tabAgencies').classList.remove('hide');
-            document.getElementById('tabNodes').classList.remove('hide');
+    } catch(e) { tbody.innerHTML=`<tr><td colspan="6"><div class="spin-wrap" style="color:var(--danger)">Ошибка</div></td></tr>`; }
+}
+
+function renderEmployees(list) {
+    const tb=document.getElementById("empTbody"); tb.innerHTML="";
+    if (!list.length) { tb.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-ico">👥</div><div class="empty-txt">Нет сотрудников</div></div></td></tr>`; return; }
+    list.forEach(e => {
+        const lnk=`${location.origin}/c/${e.secret_uuid}`;
+        tb.innerHTML+=`<tr><td><strong>${e.agency_name}</strong></td><td>${e.name}</td><td><span class="badge b-awg">${e.keys_count} ключей</span></td><td><a href="${lnk}" target="_blank">${e.secret_uuid.slice(0,8)}…</a></td><td style="color:var(--text-3);font-size:12px;">${e.created_at}</td><td class="flex"><button onclick="copyLink('${lnk}')" class="btn-ghost btn-xs">📋</button><button onclick="delEmployee(${e.id})" class="btn-danger btn-xs">Удалить</button></td></tr>`;
+    });
+}
+
+function filterEmployees() {
+    const s=document.getElementById("eSearch").value.toLowerCase(), c=document.getElementById("eCompany").value;
+    renderEmployees(employeesCache.filter(e => (e.name.toLowerCase().includes(s)||e.secret_uuid.includes(s)) && (!c||e.agency_name===c)));
+}
+
+/* ===== SUPERADMIN: ADD EMPLOYEE ===== */
+async function openEmpModal() {
+    const h={"Authorization":`Bearer ${token}`};
+    const rA=await fetch(`${API}/admin/agencies`,{headers:h}); let agOpts="";
+    if (rA.ok) { const a=await rA.json(); agOpts=a.map(x=>`<option value="${x.id}">${x.name}</option>`).join(""); }
+    modal(`<h2>Добавить сотрудника</h2><p class="sub">Ключи создадутся автоматически по шаблону компании</p>
+        <label>Компания</label><select id="eCompSel">${agOpts}</select>
+        <label>Имя сотрудника</label><input id="eName" placeholder="Иванов Иван">
+        <div class="btns"><button id="eBtn" onclick="submitEmployee()" class="btn">Добавить</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
+}
+
+async function submitEmployee() {
+    const btn=document.getElementById("eBtn"); btn.disabled=true;
+    const name=document.getElementById("eName").value;
+    if (!name) { toast("Введите имя","err"); btn.disabled=false; return; }
+    const cid=document.getElementById("eCompSel").value;
+    const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
+    try {
+        showProg(`Инициализация: ${name}…`,"Подготовка списка серверов");
+        const rInit=await fetch(`${API}/admin/employees/init?name=${encodeURIComponent(name)}&agency_id=${cid}`,{method:"POST",headers:h});
+        if (!rInit.ok) {
+            hideProg();
+            const err=await rInit.json();
+            toast(err.detail||"Ошибка","err");
+            btn.disabled=false;
+            return;
         }
-        
-        showSection('dashboardSection');
-        loadMyKeys();
-        if (role === 'SUPERADMIN' || role === 'AGENCY' || role === 'AGENCY_ADMIN') loadEmployees();
-        if (role === 'SUPERADMIN') { loadAgencies(); loadNodes(); }
-    }
+        const initData=await rInit.json();
+        const empId=initData.employee_id, tasks=initData.tasks||[];
+        let createdCount=0, errCount=0;
 
-    function showSection(id) {
-        document.getElementById('authSection').classList.add('hide');
-        document.getElementById('dashboardSection').classList.add('hide');
-        document.getElementById(id).classList.remove('hide');
-    }
-
-    function switchTab(t) {
-        document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
-        document.getElementById('tabContentMyKeys').classList.add('hide');
-        document.getElementById('tabContentEmployees').classList.add('hide');
-        document.getElementById('tabContentAgencies').classList.add('hide');
-        document.getElementById('tabContentNodes').classList.add('hide');
-
-        if (t === 'myKeys') {
-            document.getElementById('tabContentMyKeys').classList.remove('hide');
-            event.target.classList.add('on');
-            loadMyKeys();
-        } else if (t === 'employees') {
-            document.getElementById('tabContentEmployees').classList.remove('hide');
-            event.target.classList.add('on');
-            loadEmployees();
-        } else if (t === 'agencies') {
-            document.getElementById('tabContentAgencies').classList.remove('hide');
-            event.target.classList.add('on');
-            loadAgencies();
-        } else if (t === 'nodes') {
-            document.getElementById('tabContentNodes').classList.remove('hide');
-            event.target.classList.add('on');
-            loadNodes();
+        for (let i=0; i<tasks.length; i++) {
+            const t=tasks[i];
+            const keyDesc=`${name} ${t.suffix}`.trim();
+            showProg(`Создание ключа ${i+1} из ${tasks.length}: ${keyDesc}`,`Сервер: ${t.node_name} (${t.node_location}) ~15 сек`);
+            try {
+                const rKey=await fetch(`${API}/admin/employees/${empId}/generate_key`,{
+                    method:"POST", headers:h,
+                    body:JSON.stringify({node_id:t.node_id, protocol:t.protocol, suffix:t.suffix})
+                });
+                if (rKey.ok) createdCount++; else errCount++;
+            } catch(e) { errCount++; }
         }
-    }
 
-    function isSuperAdmin() { return (state.user.role || '').toUpperCase() === 'SUPERADMIN'; }
-    function isAgency() { return ['AGENCY', 'AGENCY_ADMIN'].includes((state.user.role || '').toUpperCase()); }
-    function isClient() { return (state.user.role || '').toUpperCase() === 'CLIENT'; }
+        hideProg();
+        closeModal();
+        toast(`Сотрудник ${name} создан! Выпущено ключей: ${createdCount} из ${tasks.length}`, createdCount>0?'ok':'err');
+        loadEmployees(); loadCompanies();
+    } catch(e) { hideProg(); toast("Ошибка сети","err"); }
+    if (document.getElementById("eBtn")) document.getElementById("eBtn").disabled=false;
+}
 
-    async function loadMyKeys() {
-        const wrap = document.getElementById('myKeysList');
+/* ===== SUPERADMIN: BULK ADD ===== */
+function openBulkEmpModal() {
+    modal(`<h2>Массовое добавление сотрудников</h2><p class="sub">Каждый сотрудник — отдельная строка</p>
+        <label>Компания</label><select id="bEmpComp"></select>
+        <label>Список сотрудников</label>
+        <textarea id="bEmpNames" placeholder="Иванов Иван\nПетров Пётр\nСидоров Сидор"></textarea>
+        <div id="bEmpProg" class="hide" style="margin-top:12px;"></div>
+        <div class="btns"><button id="bEmpBtn" onclick="submitBulkEmp()" class="btn">🚀 Добавить всех</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
+    fetch(`${API}/admin/agencies`,{headers:{"Authorization":`Bearer ${token}`}}).then(r=>r.json()).then(list=>{document.getElementById("bEmpComp").innerHTML=list.map(a=>`<option value="${a.id}">${a.name}</option>`).join("");});
+}
+
+async function submitBulkEmp() {
+    const names=document.getElementById("bEmpNames").value.split("\n").map(n=>n.trim()).filter(n=>n.length>0);
+    if (!names.length) { toast("Введите имена","err"); return; }
+    const cid=document.getElementById("bEmpComp").value;
+    const btn=document.getElementById("bEmpBtn"); btn.disabled=true;
+    const prog=document.getElementById("bEmpProg"); prog.classList.remove("hide");
+    const h={"Authorization":`Bearer ${token}`};
+    let ok=0, fail=0;
+    for (let i=0; i<names.length; i++) {
+        prog.innerHTML=`<div class="spin-wrap" style="padding:8px 0;justify-content:flex-start;"><span class="spin"></span>Создание ${i+1} из ${names.length}: <strong>${names[i]}</strong> (15-20 сек)</div>`;
         try {
-            let keys = [];
-            if (isClient()) {
-                keys = await apiReq('/client/portal/keys');
-            } else if (isAgency()) {
-                keys = await apiReq('/agency/keys');
-            } else {
-                keys = await apiReq('/admin/keys');
-            }
-            state.myKeys = keys;
-            
-            if (!keys.length) {
-                wrap.innerHTML = `<div class="card" style="text-align:center; padding:40px; color:var(--text-muted);">У вас пока нет выданных VPN ключей.</div>`;
-                return;
-            }
-            
-            wrap.innerHTML = keys.map(k => `
-                <div class="key-card">
-                    <div class="key-header">
-                        <div class="key-title">
-                            ${k.employee_name.includes('phone') ? '📱' : '💻'} ${k.employee_name || 'VPN Ключ'}
-                            <span class="badge b-awg">${k.protocol || 'AMNEZIA_WG'}</span>
-                        </div>
-                        <div class="flex">
-                            <button class="btn btn-copy btn-sm" onclick="copyKeyText(this, '${k.config_content.replace(/'/g, "\\'")}')">Скопировать ключ</button>
-                            <button class="btn-ghost btn-sm" onclick="openQrModal('${k.employee_name}', '${k.config_content.replace(/'/g, "\\'")}')">QR-код</button>
-                        </div>
-                    </div>
-                    <div class="key-box">${k.config_content}</div>
-                </div>
-            `).join('');
-        } catch(e) {
-            wrap.innerHTML = `<div class="card" style="color:var(--danger)">Ошибка загрузки ключей: ${e.message}</div>`;
+            const r=await fetch(`${API}/admin/employees?name=${encodeURIComponent(names[i])}&agency_id=${cid}`,{method:"POST",headers:h});
+            if (r.ok) ok++; else fail++;
+        } catch(e) { fail++; }
+    }
+    prog.innerHTML=`<div style="padding:8px 0;font-size:13px;"><span style="color:var(--green);">✓ Создано: ${ok}</span>${fail?` · <span style="color:var(--danger);">✕ Ошибок: ${fail}</span>`:''}</div>`;
+    btn.disabled=false; btn.innerText="Готово ✓"; btn.onclick=()=>{closeModal();loadEmployees();loadCompanies();};
+}
+
+async function delEmployee(id) {
+    if (!confirm("Удалить сотрудника и все его VPN-ключи?")) return;
+    showProg("Инициализация удаления…", "Получение списка ключей");
+    try {
+        const h={"Authorization":`Bearer ${token}`};
+        const rTasks=await fetch(`${API}/admin/employees/${id}/delete_tasks`,{headers:h});
+        if (!rTasks.ok) {
+            const r=await fetch(`${API}/admin/employees/${id}`,{method:"DELETE",headers:h});
+            hideProg();
+            if (r.ok) { toast("Сотрудник удалён","ok"); loadEmployees(); loadCompanies(); }
+            else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+            return;
         }
-    }
-
-    function copyKeyText(btn, text) {
-        navigator.clipboard.writeText(text);
-        const orig = btn.innerText;
-        btn.innerText = '✓ Скопировано!';
-        btn.classList.add('copied');
-        setTimeout(() => {
-            btn.innerText = orig;
-            btn.classList.remove('copied');
-        }, 2000);
-        showToast('Ключ скопирован в буфер обмена!', 'ok');
-    }
-
-    function openQrModal(title, link) {
-        state.currentQrLink = link;
-        document.getElementById('qrTitle').innerText = title || 'QR-Код Импорта';
-        const wrap = document.getElementById('qrImageWrap');
-        wrap.innerHTML = '';
+        const data=await rTasks.json();
+        const keys=data.keys||[];
         
-        QRCode.toCanvas(link, { width: 240, margin: 2, color: { dark: '#0f172a', light: '#ffffff' } }, (err, canvas) => {
-            if (err) wrap.innerText = 'Ошибка генерации QR';
-            else wrap.appendChild(canvas);
-        });
-        
-        openModal('modalViewQr');
-    }
-
-    function copyModalKey() {
-        if (!state.currentQrLink) return;
-        const btn = document.getElementById('qrCopyBtn');
-        copyKeyText(btn, state.currentQrLink);
-    }
-
-    async function loadEmployees() {
-        const tb = document.getElementById('employeesTable');
-        try {
-            const emps = await apiReq(isSuperAdmin() ? '/admin/employees' : '/agency/employees');
-            state.employees = emps;
-            tb.innerHTML = emps.map(e => `
-                <tr>
-                    <td>#${e.id}</td>
-                    <td><b>${e.name}</b></td>
-                    <td>${e.email || '—'}</td>
-                    <td><span class="badge b-tmpl">Агентство #${e.agency_id}</span></td>
-                    <td>${e.position || '—'}</td>
-                    <td><b>${e.keys ? e.keys.length : 0}</b> ключей</td>
-                    <td>
-                        <button class="btn btn-xs" onclick="openIssueModal(${e.id}, '${e.name.replace(/'/g, "\\'")}')">+ Ключ</button>
-                    </td>
-                </tr>
-            `).join('');
-        } catch(err) {
-            tb.innerHTML = `<tr><td colspan="7" style="color:var(--danger)">Ошибка: ${err.message}</td></tr>`;
+        for (let i=0; i<keys.length; i++) {
+            const k=keys[i];
+            showProg(`Удаление ключа ${i+1} из ${keys.length}: ${k.name}`, `Отозвать с сервера: ${k.node_name}`);
+            await fetch(`${API}/admin/employees/${id}/revoke_key/${k.id}`,{method:"DELETE",headers:h});
         }
-    }
-
-    async function loadAgencies() {
-        const tb = document.getElementById('agenciesTable');
-        try {
-            const ags = await apiReq('/admin/agencies');
-            state.agencies = ags;
-            tb.innerHTML = ags.map(a => `
-                <tr>
-                    <td>#${a.id}</td>
-                    <td><b>${a.name}</b></td>
-                    <td>${a.employees ? a.employees.length : 0} сотрудников</td>
-                    <td>${new Date(a.created_at).toLocaleDateString()}</td>
-                    <td><button class="btn-ghost btn-xs">Детали</button></td>
-                </tr>
-            `).join('');
-        } catch(err) {
-            tb.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">Ошибка: ${err.message}</td></tr>`;
-        }
-    }
-
-    async function loadNodes() {
-        const wrap = document.getElementById('nodesList');
-        try {
-            const nds = await apiReq('/admin/nodes');
-            state.nodes = nds;
-            wrap.innerHTML = nds.map(n => `
-                <div class="key-card">
-                    <div class="key-header">
-                        <div class="key-title">
-                            🖥️ ${n.name}
-                            <span class="badge b-awg">${n.node_type}</span>
-                        </div>
-                        <span class="badge b-on">Активна</span>
-                    </div>
-                    <div style="font-size:12px; color:var(--text-muted);">
-                        <b>URL:</b> ${n.amnezia_url || n.xui_url || '—'} | <b>Локация:</b> ${n.location || 'Default'}
-                    </div>
-                </div>
-            `).join('');
-        } catch(err) {
-            wrap.innerHTML = `<div style="color:var(--danger)">Ошибка: ${err.message}</div>`;
-        }
-    }
-
-    function openModal(id) { document.getElementById(id).classList.remove('hide'); }
-    function closeModal(id) { document.getElementById(id).classList.add('hide'); }
-
-    async function openIssueModal(empId, empName) {
-        document.getElementById('issueEmpId').value = empId;
-        document.getElementById('issueEmpName').value = empName;
         
-        // Populate nodes select
-        const sel = document.getElementById('issueNodeId');
-        if (!state.nodes.length) await loadNodes();
-        sel.innerHTML = state.nodes.map(n => `<option value="${n.id}">${n.name} (${n.node_type})</option>`).join('');
-        
-        openModal('modalIssueKey');
-    }
+        hideProg();
+        toast(`Сотрудник ${data.employee_name||''} и все ${keys.length} ключей отозваны`,"ok");
+        loadEmployees(); loadCompanies();
+    } catch(e) { hideProg(); toast("Ошибка сети","err"); }
+}
 
-    async function handleIssueKey(e) {
-        e.preventDefault();
-        const empId = document.getElementById('issueEmpId').value;
-        const nodeId = document.getElementById('issueNodeId').value;
-        const devType = document.getElementById('issueDeviceType').value;
-        
-        try {
-            const url = isSuperAdmin() ? '/admin/keys/issue' : '/agency/keys/issue';
-            await apiReq(url, 'POST', { employee_id: parseInt(empId), node_id: parseInt(nodeId), device_type: devType });
-            closeModal('modalIssueKey');
-            showToast('VPN Ключ успешно выпущен!', 'ok');
-            loadMyKeys();
-            if (isSuperAdmin() || isAgency()) loadEmployees();
-        } catch(err) {
-            showToast(err.message, 'err');
-        }
-    }
-
-    async function handleCreateEmployee(e) {
-        e.preventDefault();
-        const name = document.getElementById('empName').value;
-        const email = document.getElementById('empEmail').value;
-        const pos = document.getElementById('empPosition').value;
-        
-        try {
-            const url = isSuperAdmin() ? '/admin/employees' : '/agency/employees';
-            await apiReq(url, 'POST', { name, email, position: pos });
-            closeModal('modalCreateEmployee');
-            showToast('Сотрудник успешно создан!', 'ok');
-            loadEmployees();
-        } catch(err) {
-            showToast(err.message, 'err');
-        }
-    }
-
-    async function handleCreateAgency(e) {
-        e.preventDefault();
-        const name = document.getElementById('agencyName').value;
-        try {
-            await apiReq('/admin/agencies', 'POST', { name });
-            closeModal('modalCreateAgency');
-            showToast('Агентство успешно создано!', 'ok');
-            loadAgencies();
-        } catch(err) {
-            showToast(err.message, 'err');
-        }
-    }
-
-    async function handleCreateNode(e) {
-        e.preventDefault();
-        const name = document.getElementById('nodeName').value;
-        const type = document.getElementById('nodeType').value;
-        const url = document.getElementById('nodeUrl').value;
-        const user = document.getElementById('nodeUser').value;
-        const pass = document.getElementById('nodePass').value;
-        
-        try {
-            await apiReq('/admin/nodes', 'POST', {
-                name, node_type: type, amnezia_url: url, xui_username: user, xui_password: pass
+/* ===== SUPERADMIN: TEMPLATES ===== */
+async function loadTemplates() {
+    const h={"Authorization":`Bearer ${token}`}, grid=document.getElementById("tmplList");
+    grid.innerHTML=`<div class="spin-wrap"><span class="spin"></span>Загрузка...</div>`;
+    try {
+        const r=await fetch(`${API}/admin/templates`,{headers:h});
+        if (r.ok) {
+            templatesCache=await r.json(); grid.innerHTML="";
+            const sel=document.getElementById("newTmpl");
+            if (sel) { sel.innerHTML=`<option value="">— нет —</option>`+templatesCache.map(t=>`<option value="${t.id}">${t.name}</option>`).join(""); }
+            if (!templatesCache.length) { grid.innerHTML=`<div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">Нет шаблонов</div></div>`; return; }
+            templatesCache.forEach(t => {
+                const nodesBadges = t.node_names.map(n=>`<span class="badge b-awg" style="margin:2px;">${n}</span>`).join("");
+                grid.innerHTML+=`<div class="ncard"><div class="ncard-top"><div class="flex"><strong>${t.name}</strong></div><div class="flex"><button onclick="openEditTmpl(${t.id})" class="btn-ghost btn-xs">✏️</button><button onclick="delTemplate(${t.id})" class="btn-danger btn-xs">Удалить</button></div></div><div class="ncard-info">${nodesBadges || '<span style="color:var(--text-3)">Нет нод</span>'}</div></div>`;
             });
-            closeModal('modalCreateNode');
-            showToast('Сервер успешно подключен!', 'ok');
-            loadNodes();
-        } catch(err) {
-            showToast(err.message, 'err');
         }
+    } catch(e) { grid.innerHTML=`<div class="spin-wrap" style="color:var(--danger)">Ошибка</div>`; }
+}
+
+async function openTmplModal() {
+    if (!nodesCache.length) await loadNodes();
+    const nodesHtml = nodesCache.map(n => `<label class="chk-item"><input type="checkbox" value="${n.id}"> ${n.name} (${n.location}) <span class="badge ${n.node_type==='amnezia'?'b-awg':'b-vless'}" style="font-size:9px;">${n.node_type==='amnezia'?'AWG':'XUI'}</span></label>`).join("");
+    modal(`<h2>Создать шаблон</h2><p class="sub">Выберите ноды для этого шаблона</p>
+        <label>Название</label><input id="tmplName" placeholder="Premium">
+        <label>Ноды</label><div class="chk-grid" id="tmplNodes">${nodesHtml}</div>
+        <div class="btns"><button onclick="submitTemplate()" class="btn">Создать</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
+}
+
+async function submitTemplate() {
+    const name=document.getElementById("tmplName").value;
+    if (!name) { toast("Введите название","err"); return; }
+    const nodeIds=[...document.querySelectorAll("#tmplNodes input:checked")].map(i=>parseInt(i.value));
+    const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
+    const r=await fetch(`${API}/admin/templates`,{method:"POST",headers:h,body:JSON.stringify({name,node_ids:nodeIds})});
+    if (r.ok) { closeModal(); toast("Шаблон создан","ok"); loadTemplates(); }
+    else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+}
+
+async function openEditTmpl(id) {
+    if (!nodesCache.length) await loadNodes();
+    const t=templatesCache.find(x=>x.id===id); if (!t) return;
+    const nodesHtml = nodesCache.map(n => `<label class="chk-item"><input type="checkbox" value="${n.id}" ${t.node_ids.includes(n.id)?'checked':''}> ${n.name} (${n.location}) <span class="badge ${n.node_type==='amnezia'?'b-awg':'b-vless'}" style="font-size:9px;">${n.node_type==='amnezia'?'AWG':'XUI'}</span></label>`).join("");
+    modal(`<h2>Редактировать: ${t.name}</h2><p class="sub">Изменить ноды шаблона</p>
+        <label>Название</label><input id="tmplName" value="${t.name}">
+        <label>Ноды</label><div class="chk-grid" id="tmplNodes">${nodesHtml}</div>
+        <div class="btns"><button onclick="updateTemplate(${id})" class="btn">Сохранить</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
+}
+
+async function updateTemplate(id) {
+    const name=document.getElementById("tmplName").value;
+    const nodeIds=[...document.querySelectorAll("#tmplNodes input:checked")].map(i=>parseInt(i.value));
+    const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
+    const r=await fetch(`${API}/admin/templates/${id}`,{method:"PUT",headers:h,body:JSON.stringify({name,node_ids:nodeIds})});
+    if (r.ok) { closeModal(); toast("Шаблон обновлён","ok"); loadTemplates(); loadCompanies(); }
+    else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+}
+
+async function delTemplate(id) {
+    if (!confirm("Удалить шаблон?")) return;
+    await fetch(`${API}/admin/templates/${id}`,{method:"DELETE",headers:{"Authorization":`Bearer ${token}`}});
+    toast("Шаблон удалён","ok"); loadTemplates(); loadCompanies();
+}
+
+function openAssignTmpl(agencyId, agencyName) {
+    const opts = templatesCache.map(t=>`<option value="${t.id}">${t.name}</option>`).join("");
+    modal(`<h2>Назначить шаблон</h2><p class="sub">Компания: <strong>${agencyName}</strong></p>
+        <label>Шаблон</label><select id="assignTmplSel">${opts}</select>
+        <div class="btns"><button onclick="submitAssignTmpl(${agencyId})" class="btn">Назначить</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
+}
+
+async function submitAssignTmpl(agencyId) {
+    const tid=parseInt(document.getElementById("assignTmplSel").value);
+    const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
+    const r=await fetch(`${API}/admin/agencies/${agencyId}/template`,{method:"PUT",headers:h,body:JSON.stringify({template_id:tid})});
+    if (r.ok) { closeModal(); toast("Шаблон назначен","ok"); loadCompanies(); }
+    else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+}
+
+/* ===== SUPERADMIN: NODES ===== */
+async function loadNodes() {
+    const h={"Authorization":`Bearer ${token}`}, grid=document.getElementById("nodesList");
+    grid.innerHTML=`<div class="spin-wrap"><span class="spin"></span>Загрузка нод...</div>`;
+    try {
+        const r=await fetch(`${API}/admin/nodes`,{headers:h});
+        if (r.ok) {
+            nodesCache=await r.json(); grid.innerHTML="";
+            if (document.getElementById("sNodes")) document.getElementById("sNodes").innerText=nodesCache.length;
+            if (!nodesCache.length) { grid.innerHTML=`<div class="empty"><div class="empty-ico">🖥️</div><div class="empty-txt">Нет нод</div></div>`; return; }
+            nodesCache.forEach(n => {
+                const tl=n.node_type==="xui"?"⚡ 3X-UI":"🔒 AWG", bc=n.node_type==="xui"?"b-vless":"b-awg";
+                const det=n.node_type==="xui"?`URL: ${n.xui_url||'—'} · Inbound: ${n.xui_inbound_id||'-'}`:`Server ID: ${n.amnezia_server_id||'—'}`;
+                grid.innerHTML+=`<div class="ncard"><div class="ncard-top"><div class="flex"><strong>${n.name}</strong><span class="badge b-awg">${n.location}</span><span class="badge ${bc}">${tl}</span></div><div class="flex"><button onclick="testNode(${n.id})" class="btn-ghost btn-xs">Тест</button><button onclick="delNode(${n.id})" class="btn-danger btn-xs">Удалить</button></div></div><div class="ncard-info">${det}<div id="ns_${n.id}" style="margin-top:4px;"></div></div></div>`;
+            });
+        }
+    } catch(e) { grid.innerHTML=`<div class="spin-wrap" style="color:var(--danger)">Ошибка</div>`; }
+}
+
+async function testNode(id) {
+    const d=document.getElementById(`ns_${id}`);
+    d.innerHTML=`<span class="flex"><span class="spin" style="width:12px;height:12px;"></span><span style="font-size:11px;">Проверка...</span></span>`;
+    try {
+        const r=await fetch(`${API}/admin/nodes/${id}/test`,{method:"POST",headers:{"Authorization":`Bearer ${token}`}});
+        if (r.ok) { const data=await r.json(); if (data.node_type==="xui") d.innerHTML=data.xui_connected?`<span class="badge b-on">Online</span>`:`<span class="badge b-off">Offline</span>`; else d.innerHTML=data.amnezia_connected?`<span class="badge b-on">Online</span>`:`<span class="badge b-off">Offline</span>`; }
+        else d.innerHTML=`<span class="badge b-off">Ошибка</span>`;
+    } catch(e) { d.innerHTML=`<span class="badge b-off">Ошибка сети</span>`; }
+}
+
+async function delNode(id) {
+    if (!confirm("Удалить ноду и все её ключи?")) return;
+    showProg("Удаление ноды…","Удаление связанных ключей");
+    try {
+        const r=await fetch(`${API}/admin/nodes/${id}`,{method:"DELETE",headers:{"Authorization":`Bearer ${token}`}});
+        hideProg();
+        if (r.ok) { toast("Нода удалена","ok"); loadNodes(); loadTemplates(); }
+        else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+    } catch(e) { hideProg(); toast("Ошибка сети","err"); }
+}
+
+function openNodeModal() {
+    modal(`<h2>Добавить ноду</h2><p class="sub">Подключение VPN-сервера</p>
+        <label>Тип сервера</label><select id="nType" onchange="toggleNF()"><option value="xui">3X-UI (VLESS)</option><option value="amnezia">AmneziaWG v2</option></select>
+        <div class="row2"><div><label>Название</label><input id="nName" placeholder="США"></div><div><label>Локация</label><input id="nLoc" placeholder="US"></div></div>
+        <div id="xuiF"><label>Server URL</label><input id="nXUrl" placeholder="http://ip:2053"><label>API Token</label><input id="nXTok" placeholder="Token"><div style="font-size:11px;color:var(--text-3);margin:4px 0 6px;">Или логин/пароль:</div><div class="row2"><input id="nXU" placeholder="Логин"><input id="nXP" type="password" placeholder="Пароль"></div><label>Inbound ID</label><input id="nXI" type="number" placeholder="1"></div>
+        <div id="amnF" class="hide"><label>Server ID <span style="color:var(--text-3);font-weight:400">(номер сервера в панели Amnezia)</span></label><input id="nAId" type="number" placeholder="2" value="2"></div>
+        <div class="btns"><button onclick="submitNode()" class="btn">Подключить</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
+}
+function toggleNF() { const t=document.getElementById("nType").value; document.getElementById("xuiF").classList.toggle("hide",t!=="xui"); document.getElementById("amnF").classList.toggle("hide",t!=="amnezia"); }
+
+async function submitNode() {
+    try {
+        const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"}, t=document.getElementById("nType").value;
+        const p={name:document.getElementById("nName").value,location:document.getElementById("nLoc").value,node_type:t,
+            xui_url:t==="xui"?document.getElementById("nXUrl").value:null, xui_api_token:t==="xui"?document.getElementById("nXTok").value:null,
+            xui_username:t==="xui"?document.getElementById("nXU").value:null, xui_password:t==="xui"?document.getElementById("nXP").value:null,
+            xui_inbound_id:t==="xui"?(parseInt(document.getElementById("nXI").value)||null):null,
+            amnezia_url:null, amnezia_server_id:t==="amnezia"?(parseInt(document.getElementById("nAId").value)||2):null};
+        const r=await fetch(`${API}/admin/nodes`,{method:"POST",headers:h,body:JSON.stringify(p)});
+        if (r.ok) { closeModal(); toast("Нода подключена!","ok"); loadNodes(); } else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+    } catch(e) { toast("Ошибка сети","err"); }
+}
+
+/* ===== COMPANY ADMIN ===== */
+async function loadAgencyData() {
+    const h={"Authorization":`Bearer ${token}`};
+    try {
+        const rA=await fetch(`${API}/agency/me`,{headers:h});
+        if (rA.ok) {
+            const a=await rA.json();
+            document.getElementById("cTitle").innerText=a.name;
+            document.getElementById("cEmpCount").innerText=`${a.employee_count} / ${a.quota_awg}`;
+            document.getElementById("cTmplName").innerText=a.template_name||"Не назначен";
+        }
+        const rE=await fetch(`${API}/agency/employees`,{headers:h});
+        const tbody=document.getElementById("cEmpTbody");
+        if (rE.ok) {
+            const emps=await rE.json(); tbody.innerHTML="";
+            if (!emps.length) { tbody.innerHTML=`<tr><td colspan="4"><div class="empty"><div class="empty-ico">👥</div><div class="empty-txt">Нет сотрудников</div></div></td></tr>`; return; }
+            emps.forEach(e => {
+                const lnk=`${location.origin}/c/${e.secret_uuid}`;
+                tbody.innerHTML+=`<tr><td><strong>${e.name}</strong></td><td><span class="badge b-awg">${e.keys_count} ключей</span></td><td><a href="${lnk}" target="_blank">${e.secret_uuid.slice(0,8)}…</a></td><td class="flex"><button onclick="copyLink('${lnk}')" class="btn-ghost btn-xs">📋</button><button onclick="delEmployeeAgency(${e.id})" class="btn-danger btn-xs">Удалить</button></td></tr>`;
+            });
+        }
+    } catch(e) { console.error(e); }
+}
+
+function openEmpModalAgency() {
+    modal(`<h2>Добавить сотрудника</h2><p class="sub">Ключи создадутся автоматически по шаблону</p>
+        <label>Имя сотрудника</label><input id="eNameA" placeholder="Иванов Иван">
+        <div id="eProgA" class="hide" style="margin-top:12px;"></div>
+        <div class="btns"><button id="eBtnA" onclick="submitEmployeeAgency()" class="btn">Добавить</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
+}
+
+async function submitEmployeeAgency() {
+    const btn=document.getElementById("eBtnA"); btn.disabled=true;
+    const name=document.getElementById("eNameA").value;
+    if (!name) { toast("Введите имя","err"); btn.disabled=false; return; }
+    const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
+    try {
+        showProg(`Инициализация: ${name}…`,"Подготовка списка серверов");
+        const rInit=await fetch(`${API}/agency/employees/init?name=${encodeURIComponent(name)}`,{method:"POST",headers:h});
+        if (!rInit.ok) {
+            hideProg();
+            const err=await rInit.json();
+            toast(err.detail||"Ошибка","err");
+            btn.disabled=false;
+            return;
+        }
+        const initData=await rInit.json();
+        const empId=initData.employee_id, tasks=initData.tasks||[];
+        let createdCount=0, errCount=0;
+
+        for (let i=0; i<tasks.length; i++) {
+            const t=tasks[i];
+            const keyDesc=`${name} ${t.suffix}`.trim();
+            showProg(`Создание ключа ${i+1} из ${tasks.length}: ${keyDesc}`,`Сервер: ${t.node_name} (${t.node_location}) ~15 сек`);
+            try {
+                const rKey=await fetch(`${API}/agency/employees/${empId}/generate_key`,{
+                    method:"POST", headers:h,
+                    body:JSON.stringify({node_id:t.node_id, protocol:t.protocol, suffix:t.suffix})
+                });
+                if (rKey.ok) createdCount++; else errCount++;
+            } catch(e) { errCount++; }
+        }
+
+        hideProg();
+        closeModal();
+        toast(`Сотрудник ${name} создан! Выпущено ключей: ${createdCount} из ${tasks.length}`, createdCount>0?'ok':'err');
+        loadAgencyData();
+    } catch(e) { hideProg(); toast("Ошибка сети","err"); }
+    if (document.getElementById("eBtnA")) document.getElementById("eBtnA").disabled=false;
+}
+
+function openBulkEmpModalAgency() {
+    modal(`<h2>Массовое добавление</h2><p class="sub">Имена сотрудников (каждый с новой строки)</p>
+        <label>Список сотрудников</label>
+        <textarea id="bEmpNamesA" placeholder="Иванов Иван\nПетров Пётр"></textarea>
+        <div id="bEmpProgA" class="hide" style="margin-top:12px;"></div>
+        <div class="btns"><button id="bEmpBtnA" onclick="submitBulkEmpAgency()" class="btn">🚀 Добавить всех</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
+}
+
+async function submitBulkEmpAgency() {
+    const names=document.getElementById("bEmpNamesA").value.split("\n").map(n=>n.trim()).filter(n=>n.length>0);
+    if (!names.length) { toast("Введите имена","err"); return; }
+    const btn=document.getElementById("bEmpBtnA"); btn.disabled=true;
+    const prog=document.getElementById("bEmpProgA"); prog.classList.remove("hide");
+    const h={"Authorization":`Bearer ${token}`};
+    let ok=0, fail=0;
+    for (let i=0; i<names.length; i++) {
+        prog.innerHTML=`<div class="spin-wrap" style="padding:8px 0;justify-content:flex-start;"><span class="spin"></span>Создание ${i+1} из ${names.length}: <strong>${names[i]}</strong> (15-20 сек)</div>`;
+        try {
+            const r=await fetch(`${API}/agency/employees?name=${encodeURIComponent(names[i])}`,{method:"POST",headers:h});
+            if (r.ok) ok++; else fail++;
+        } catch(e) { fail++; }
     }
+    prog.innerHTML=`<div style="padding:8px 0;font-size:13px;"><span style="color:var(--green);">✓ Создано: ${ok}</span>${fail?` · <span style="color:var(--danger);">✕ Ошибок: ${fail}</span>`:''}</div>`;
+    btn.disabled=false; btn.innerText="Готово ✓"; btn.onclick=()=>{closeModal();loadAgencyData();};
+}
+
+async function delEmployeeAgency(id) {
+    if (!confirm("Удалить сотрудника и все его VPN-ключи?")) return;
+    showProg("Инициализация удаления…", "Получение списка ключей");
+    try {
+        const h={"Authorization":`Bearer ${token}`};
+        const rTasks=await fetch(`${API}/agency/employees/${id}/delete_tasks`,{headers:h});
+        if (!rTasks.ok) {
+            const r=await fetch(`${API}/agency/employees/${id}`,{method:"DELETE",headers:h});
+            hideProg();
+            if (r.ok) { toast("Сотрудник удалён","ok"); loadAgencyData(); }
+            else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+            return;
+        }
+        const data=await rTasks.json();
+        const keys=data.keys||[];
+        
+        for (let i=0; i<keys.length; i++) {
+            const k=keys[i];
+            showProg(`Удаление ключа ${i+1} из ${keys.length}: ${k.name}`, `Отозвать с сервера: ${k.node_name}`);
+            await fetch(`${API}/agency/employees/${id}/revoke_key/${k.id}`,{method:"DELETE",headers:h});
+        }
+        
+        hideProg();
+        toast(`Сотрудник ${data.employee_name||''} и все ${keys.length} ключей отозваны`,"ok");
+        loadAgencyData();
+    } catch(e) { hideProg(); toast("Ошибка сети","err"); }
+}
+
+/* ===== CRUD HELPERS ===== */
+async function createCompany() {
+    const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"}, name=document.getElementById("newName").value;
+    if (!name) { toast("Введите название","err"); return; }
+    const tmplId=document.getElementById("newTmpl").value;
+    const r=await fetch(`${API}/admin/agencies`,{method:"POST",headers:h,body:JSON.stringify({name,quota_awg:parseInt(document.getElementById("newQA").value)||20,quota_vless:10})});
+    if (r.ok && tmplId) {
+        const agency=await r.json();
+        await fetch(`${API}/admin/agencies/${agency.id}/template`,{method:"PUT",headers:h,body:JSON.stringify({template_id:parseInt(tmplId)})});
+    }
+    document.getElementById("newName").value=""; toast(`"${name}" создана`,"ok"); loadCompanies();
+}
+
+async function delCompany(id) { if (!confirm("Удалить компанию?")) return; await fetch(`${API}/admin/agencies/${id}`,{method:"DELETE",headers:{"Authorization":`Bearer ${token}`}}); toast("Удалена","ok"); loadCompanies(); }
+
+async function registerAdmin() {
+    const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"}, email=document.getElementById("newUEmail").value;
+    if (!email) { toast("Введите email","err"); return; }
+    const r=await fetch(`${API}/admin/users`,{method:"POST",headers:h,body:JSON.stringify({email,password:document.getElementById("newUPass").value,agency_id:parseInt(document.getElementById("newUCompany").value)})});
+    if (r.ok) { toast(`${email} зарегистрирован`,"ok"); document.getElementById("newUEmail").value=""; document.getElementById("newUPass").value=""; }
+    else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+}
+
+function copyLink(t) { navigator.clipboard.writeText(t); toast("Скопировано в буфер обмена","ok"); }
 </script>
 </body>
 </html>
