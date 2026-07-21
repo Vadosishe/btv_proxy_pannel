@@ -228,11 +228,75 @@ def _template_to_response(t: Template) -> TemplateResponse:
 
 # ==================== EMPLOYEES (superadmin) ====================
 
+def _init_employee_tasks(name: str, agency: Agency, template: Template, db: Session) -> dict:
+    employee = Employee(name=name, agency_id=agency.id)
+    db.add(employee)
+    db.commit()
+    db.refresh(employee)
+
+    tasks = []
+    for node in template.nodes:
+        if node.node_type == "amnezia":
+            tasks.append({"node_id": node.id, "node_name": node.name, "node_location": node.location, "protocol": "awg", "suffix": "(phone)", "label": "Телефон"})
+            tasks.append({"node_id": node.id, "node_name": node.name, "node_location": node.location, "protocol": "awg", "suffix": "(pc)", "label": "Компьютер"})
+        elif node.node_type == "xui":
+            tasks.append({"node_id": node.id, "node_name": node.name, "node_location": node.location, "protocol": "vless", "suffix": "", "label": "VLESS"})
+
+    return {
+        "employee_id": employee.id,
+        "employee_name": employee.name,
+        "secret_uuid": employee.secret_uuid,
+        "tasks": tasks
+    }
+
+
+async def _generate_single_key_for_employee(employee: Employee, node_id: int, protocol: str, suffix: str, db: Session) -> dict:
+    from app.services.amnezia import AmneziaClient, format_amnezia_vpn_link
+    from app.services.xui import XUIClient
+    from app.config import settings
+
+    node = db.query(Node).get(node_id)
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    key_name = f"{employee.name} {suffix}".strip()
+    
+    if protocol == "awg":
+        amnezia_target_url = node.amnezia_url or settings.AMNEZIA_API_URL
+        amnezia = AmneziaClient(amnezia_target_url, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
+        res = await amnezia.create_awg_client(node.amnezia_server_id or 1, key_name)
+        vpn_link = format_amnezia_vpn_link(res["vpn_link"])
+        ck = ClientKey(
+            agency_id=employee.agency_id, node_id=node.id, employee_id=employee.id,
+            employee_name=key_name, protocol=ProtocolType.AMNEZIA_WG,
+            config_content=vpn_link, remote_client_id=res["client_id"]
+        )
+        db.add(ck)
+        db.commit()
+        return {"status": "ok", "key_name": key_name, "node_name": node.name, "vpn_link": vpn_link}
+    elif protocol == "vless":
+        if not node.xui_url or not node.xui_inbound_id:
+            raise HTTPException(status_code=400, detail="Node is not configured for VLESS")
+        xui = XUIClient(node.xui_url, username=node.xui_username, password=node.xui_password, api_token=node.xui_api_token)
+        res = await xui.add_vless_client(node.xui_inbound_id, employee.name, group_name=employee.agency.name if employee.agency else "")
+        ck = ClientKey(
+            agency_id=employee.agency_id, node_id=node.id, employee_id=employee.id,
+            employee_name=employee.name, protocol=ProtocolType.VLESS,
+            config_content=res["vless_link"], remote_client_id=res["client_id"]
+        )
+        db.add(ck)
+        db.commit()
+        return {"status": "ok", "key_name": employee.name, "node_name": node.name, "vpn_link": res["vless_link"]}
+
+    raise HTTPException(status_code=400, detail="Unknown protocol")
+
+
 @router.get("/employees")
 def list_all_employees(db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
     _ensure_orphan_keys_migrated(db)
     employees = db.query(Employee).all()
     return [_employee_to_dict(e) for e in employees]
+
 
 @router.post("/employees/init")
 def init_employee_creation(
@@ -251,6 +315,7 @@ def init_employee_creation(
         raise HTTPException(status_code=400, detail=f"Лимит сотрудников ({agency.quota_awg}) исчерпан!")
 
     return _init_employee_tasks(name, agency, tmpl, db)
+
 
 @router.post("/employees/{employee_id}/generate_key")
 async def generate_single_key(
@@ -428,39 +493,6 @@ def _ensure_orphan_keys_migrated(db: Session, agency_id: int = None):
         for k in keys_list:
             k.employee_id = emp.id
     db.commit()
-
-
-@router.post("/employees/init")
-def init_employee_creation(
-    name: str, agency_id: int, template_id: int = None,
-    db: Session = Depends(get_db), _: User = Depends(require_superadmin)
-):
-    agency = db.query(Agency).get(agency_id)
-    if not agency:
-        raise HTTPException(status_code=404, detail="Agency not found")
-    tmpl = db.query(Template).get(template_id) if template_id else agency.template
-    if not tmpl or not tmpl.nodes:
-        raise HTTPException(status_code=400, detail="К компании не привязан шаблон или в шаблоне нет серверных нод.")
-
-    employee_count = db.query(Employee).filter(Employee.agency_id == agency_id).count()
-    if employee_count >= agency.quota_awg:
-        raise HTTPException(status_code=400, detail=f"Лимит сотрудников ({agency.quota_awg}) исчерпан!")
-
-    return _init_employee_tasks(name, agency, tmpl, db)
-
-
-@router.post("/employees/{employee_id}/generate_key")
-async def generate_single_key(
-    employee_id: int, payload: dict,
-    db: Session = Depends(get_db), _: User = Depends(require_superadmin)
-):
-    employee = db.query(Employee).get(employee_id)
-    if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    node_id = payload.get("node_id")
-    protocol = payload.get("protocol", "awg")
-    suffix = payload.get("suffix", "")
-    return await _generate_single_key_for_employee(employee, node_id, protocol, suffix, db)
 
 
 def _init_employee_tasks(name: str, agency: Agency, template: Template, db: Session) -> dict:
