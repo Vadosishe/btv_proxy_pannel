@@ -1,6 +1,7 @@
 import httpx
 import base64
 import zlib
+import json
 from typing import Dict, Any
 
 class AmneziaClient:
