@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Text, Table
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Text, Table, Boolean
 from sqlalchemy.orm import relationship
 import enum
 
@@ -46,9 +46,11 @@ class Agency(Base):
     quota_awg = Column(Integer, default=20)
     quota_vless = Column(Integer, default=10)
     template_id = Column(Integer, ForeignKey("templates.id"), nullable=True)
+    blacklist_profile_id = Column(Integer, ForeignKey("blacklist_profiles.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     template = relationship("Template")
+    blacklist_profile = relationship("BlacklistProfile")
     admins = relationship("User", back_populates="agency")
     keys = relationship("ClientKey", back_populates="agency", cascade="all, delete-orphan")
     employees = relationship("Employee", back_populates="agency", cascade="all, delete-orphan")
@@ -89,8 +91,10 @@ class Node(Base):
     # amneziavpnphp Master Panel URL & Server ID
     amnezia_url = Column(String, nullable=True)
     amnezia_server_id = Column(Integer, nullable=True)
+    blacklist_profile_id = Column(Integer, ForeignKey("blacklist_profiles.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    blacklist_profile = relationship("BlacklistProfile")
     keys = relationship("ClientKey", back_populates="node", cascade="all, delete-orphan")
 
 
@@ -132,6 +136,31 @@ class ClientKey(Base):
     employee = relationship("Employee", back_populates="keys")
 
 
+class BlacklistProfile(Base):
+    __tablename__ = "blacklist_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    description = Column(String, nullable=True)
+    is_global = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    rules = relationship("BlacklistRule", back_populates="profile", cascade="all, delete-orphan")
+
+
+class BlacklistRule(Base):
+    __tablename__ = "blacklist_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(Integer, ForeignKey("blacklist_profiles.id"), nullable=False)
+    entry_type = Column(Enum(EntryType), nullable=False)
+    target_value = Column(String, index=True, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    profile = relationship("BlacklistProfile", back_populates="rules")
+
+
 class BlackholeEntry(Base):
     __tablename__ = "blackhole_entries"
 
@@ -140,3 +169,4 @@ class BlackholeEntry(Base):
     value = Column(String, index=True, nullable=False)
     description = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+

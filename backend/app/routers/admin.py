@@ -68,6 +68,8 @@ def _agency_to_response(a: Agency) -> AgencyResponse:
         used_awg=used_awg, used_vless=used_vless,
         template_id=a.template_id,
         template_name=a.template.name if a.template else "",
+        blacklist_profile_id=a.blacklist_profile_id,
+        blacklist_profile_name=a.blacklist_profile.name if a.blacklist_profile else "",
         created_at=a.created_at
     )
 
@@ -667,3 +669,79 @@ def _employee_to_dict(e: Employee) -> dict:
         } for k in e.keys],
         "created_at": e.created_at.strftime("%Y-%m-%d %H:%M")
     }
+
+
+# ==================== BLACKLIST PROFILES ====================
+
+from app.models import BlacklistProfile, BlacklistRule, EntryType
+from app.schemas import BlacklistProfileCreate, BlacklistProfileResponse, BlacklistRuleCreate, BlacklistRuleResponse
+from app.services.blacklist import sync_node_blacklist
+
+@router.get("/blacklist-profiles", response_model=List[BlacklistProfileResponse])
+def list_blacklist_profiles(db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    return db.query(BlacklistProfile).all()
+
+@router.post("/blacklist-profiles", response_model=BlacklistProfileResponse)
+def create_blacklist_profile(payload: BlacklistProfileCreate, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    existing = db.query(BlacklistProfile).filter(BlacklistProfile.name == payload.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Профиль с таким названием уже существует")
+    
+    if payload.is_global:
+        db.query(BlacklistProfile).update({BlacklistProfile.is_global: False})
+        db.commit()
+
+    profile = BlacklistProfile(name=payload.name, description=payload.description, is_global=payload.is_global)
+    db.add(profile)
+    db.commit()
+    db.refresh(profile)
+
+    if payload.rules:
+        for r in payload.rules:
+            rule = BlacklistRule(profile_id=profile.id, entry_type=r.entry_type, target_value=r.target_value.strip())
+            db.add(rule)
+        db.commit()
+        db.refresh(profile)
+
+    return profile
+
+@router.post("/blacklist-profiles/{profile_id}/rules", response_model=BlacklistRuleResponse)
+def add_rule_to_profile(profile_id: int, payload: BlacklistRuleCreate, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    profile = db.query(BlacklistProfile).get(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Профиль не найден")
+
+    rule = BlacklistRule(profile_id=profile.id, entry_type=payload.entry_type, target_value=payload.target_value.strip())
+    db.add(rule)
+    db.commit()
+    db.refresh(rule)
+    return rule
+
+@router.delete("/blacklist-profiles/{profile_id}/rules/{rule_id}")
+def delete_rule_from_profile(profile_id: int, rule_id: int, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    rule = db.query(BlacklistRule).filter(BlacklistRule.id == rule_id, BlacklistRule.profile_id == profile_id).first()
+    if not rule:
+        raise HTTPException(status_code=404, detail="Правило не найдено")
+    db.delete(rule)
+    db.commit()
+    return {"detail": "Правило удалено"}
+
+@router.put("/agencies/{agency_id}/blacklist-profile")
+def assign_blacklist_profile_to_agency(agency_id: int, payload: dict, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    agency = db.query(Agency).get(agency_id)
+    if not agency:
+        raise HTTPException(status_code=404, detail="Компания не найдена")
+    profile_id = payload.get("blacklist_profile_id")
+    agency.blacklist_profile_id = profile_id
+    db.commit()
+    return {"detail": "Шаблон блэклиста назначен компании"}
+
+@router.post("/blacklist-profiles/sync")
+def sync_all_blacklist_rules(db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    nodes = db.query(Node).all()
+    results = []
+    for n in nodes:
+        res = sync_node_blacklist(n.id, db)
+        results.append({"node_id": n.id, "node_name": n.name, "result": res})
+    return {"status": "ok", "synced_nodes": results}
+

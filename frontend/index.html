@@ -258,7 +258,8 @@
         <div id="adminTabs" class="tabs hide">
             <button class="tab on" onclick="switchTab('tabCompanies',this)">🏢 Компании</button>
             <button class="tab" onclick="switchTab('tabEmployees',this)">👥 Сотрудники</button>
-            <button class="tab" onclick="switchTab('tabTemplates',this)">📋 Шаблоны</button>
+            <button class="tab" onclick="switchTab('tabTemplates',this)">📋 Шаблоны нод</button>
+            <button class="tab" onclick="switchTab('tabBlacklist',this)">⛔ Шаблоны Блэклиста</button>
             <button class="tab" onclick="switchTab('tabNodes',this)">🖥️ Ноды</button>
         </div>
 
@@ -321,10 +322,22 @@
         <!-- TAB: TEMPLATES (superadmin) -->
         <div id="tabTemplates" class="card hide">
             <div class="card-head">
-                <h3>📋 Шаблоны доступа</h3>
+                <h3>📋 Шаблоны доступа нод</h3>
                 <button onclick="openTmplModal()" class="btn btn-sm">+ Создать шаблон</button>
             </div>
             <div id="tmplList"></div>
+        </div>
+
+        <!-- TAB: BLACKLIST PROFILES (superadmin) -->
+        <div id="tabBlacklist" class="card hide">
+            <div class="card-head">
+                <h3>⛔ Шаблоны Блэклиста (Правила блокировок)</h3>
+                <div class="flex">
+                    <button onclick="syncAllBlacklists()" class="btn-ghost btn-sm">🔄 Применить на серверах</button>
+                    <button onclick="openCreateBlacklistModal()" class="btn btn-sm">+ Создать Шаблон Блэклиста</button>
+                </div>
+            </div>
+            <div id="blacklistProfilesList"></div>
         </div>
 
         <!-- TAB: NODES (superadmin) -->
@@ -431,17 +444,18 @@ function init() {
 function switchTab(id, btn) {
     document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));
     btn.classList.add("on");
-    ["tabCompanies","tabEmployees","tabTemplates","tabNodes"].forEach(t=>document.getElementById(t).classList.add("hide"));
+    ["tabCompanies","tabEmployees","tabTemplates","tabBlacklist","tabNodes"].forEach(t=>document.getElementById(t).classList.add("hide"));
     document.getElementById(id).classList.remove("hide");
     if (id==="tabEmployees") loadEmployees();
     if (id==="tabTemplates") loadTemplates();
+    if (id==="tabBlacklist") loadBlacklistProfiles();
     if (id==="tabNodes") loadNodes();
 }
 
 /* ===== SUPERADMIN: COMPANIES ===== */
 async function loadCompanies() {
     const h={"Authorization":`Bearer ${token}`}, tbody=document.getElementById("companiesTbody");
-    tbody.innerHTML=`<tr><td colspan="6"><div class="spin-wrap"><span class="spin"></span>Загрузка...</div></td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="7"><div class="spin-wrap"><span class="spin"></span>Загрузка...</div></td></tr>`;
     try {
         const r = await fetch(`${API}/admin/agencies`,{headers:h});
         if (r.ok) {
@@ -449,15 +463,16 @@ async function loadCompanies() {
             const sel=document.getElementById("newUCompany"), eC=document.getElementById("eCompany");
             sel.innerHTML=""; eC.innerHTML=`<option value="">Все компании</option>`;
             tbody.innerHTML=""; document.getElementById("sCompanies").innerText=list.length;
-            if (!list.length) { tbody.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-ico">🏢</div><div class="empty-txt">Нет компаний</div></div></td></tr>`; return; }
+            if (!list.length) { tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-ico">🏢</div><div class="empty-txt">Нет компаний</div></div></td></tr>`; return; }
             list.forEach(a => {
                 sel.innerHTML+=`<option value="${a.id}">${a.name}</option>`;
                 eC.innerHTML+=`<option value="${a.name}">${a.name}</option>`;
                 const tmplBadge = a.template_name ? `<span class="badge b-tmpl">${a.template_name}</span>` : `<span style="color:var(--text-3);font-size:11px;">—</span>`;
-                tbody.innerHTML+=`<tr><td style="color:var(--text-3)">${a.id}</td><td><strong>${a.name}</strong></td><td>${tmplBadge}</td><td>${a.used_awg}/${a.quota_awg} сотр.</td><td style="color:var(--text-3)">${new Date(a.created_at).toLocaleDateString('ru-RU')}</td><td class="flex"><button onclick="openAssignTmpl(${a.id},'${a.name}')" class="btn-ghost btn-xs">⚙️</button><button onclick="delCompany(${a.id})" class="btn-danger btn-xs">Удалить</button></td></tr>`;
+                const blBadge = a.blacklist_profile_name ? `<span class="badge b-off">${a.blacklist_profile_name}</span>` : `<span style="color:var(--text-3);font-size:11px;">—</span>`;
+                tbody.innerHTML+=`<tr><td style="color:var(--text-3)">${a.id}</td><td><strong>${a.name}</strong></td><td>${tmplBadge}</td><td>${blBadge}</td><td>${a.used_awg}/${a.quota_awg} сотр.</td><td style="color:var(--text-3)">${new Date(a.created_at).toLocaleDateString('ru-RU')}</td><td class="flex"><button onclick="openAssignTmpl(${a.id},'${a.name}')" class="btn-ghost btn-xs" title="Шаблон нод">⚙️ Ноды</button><button onclick="openAssignBlacklistModal(${a.id},'${a.name}')" class="btn-ghost btn-xs" title="Шаблон ЧС">⛔ ЧС</button><button onclick="delCompany(${a.id})" class="btn-danger btn-xs">Удалить</button></td></tr>`;
             });
         }
-    } catch(e) { tbody.innerHTML=`<tr><td colspan="6"><div class="spin-wrap" style="color:var(--danger)">Ошибка</div></td></tr>`; }
+    } catch(e) { tbody.innerHTML=`<tr><td colspan="7"><div class="spin-wrap" style="color:var(--danger)">Ошибка</div></td></tr>`; }
 }
 
 /* ===== SUPERADMIN: EMPLOYEES ===== */
@@ -888,6 +903,141 @@ async function registerAdmin() {
 }
 
 function copyLink(t) { navigator.clipboard.writeText(t); toast("Скопировано в буфер обмена","ok"); }
+
+/* ===== BLACKLIST PROFILES ===== */
+let blacklistProfilesCache = [];
+
+async function loadBlacklistProfiles() {
+    const h={"Authorization":`Bearer ${token}`}, grid=document.getElementById("blacklistProfilesList");
+    grid.innerHTML=`<div class="spin-wrap"><span class="spin"></span>Загрузка шаблонов Блэклиста...</div>`;
+    try {
+        const r=await fetch(`${API}/admin/blacklist-profiles`,{headers:h});
+        if (r.ok) {
+            blacklistProfilesCache=await r.json(); grid.innerHTML="";
+            if (!blacklistProfilesCache.length) {
+                grid.innerHTML=`<div class="empty"><div class="empty-ico">⛔</div><div class="empty-txt">Нет шаблонов Блэклиста</div></div>`;
+                return;
+            }
+            blacklistProfilesCache.forEach(p => {
+                const rulesCount = p.rules ? p.rules.length : 0;
+                const globalTag = p.is_global ? `<span class="badge b-on">Глобальный ЧС</span>` : ``;
+                grid.innerHTML+=`
+                <div class="ncard">
+                    <div class="ncard-top">
+                        <div class="flex">
+                            <strong>${p.name}</strong>
+                            ${globalTag}
+                            <span class="badge b-vless">${rulesCount} правил</span>
+                        </div>
+                        <div class="flex">
+                            <button onclick="openEditBlacklistRules(${p.id})" class="btn-ghost btn-xs">✏️ Правила</button>
+                        </div>
+                    </div>
+                    <div class="ncard-info">${p.description || 'Без описания'}</div>
+                </div>`;
+            });
+        }
+    } catch(e) { grid.innerHTML=`<div class="spin-wrap" style="color:var(--danger)">Ошибка загрузки шаблонов</div>`; }
+}
+
+function openCreateBlacklistModal() {
+    modal(`<h2>Новый Шаблон Блэклиста</h2><p class="sub">Создайте набор правил блокировки доменов и IP</p>
+        <label>Название шаблона</label><input id="blName" placeholder="Корпоративный ЧС">
+        <label>Описание</label><input id="blDesc" placeholder="Блокировка соцсетей и тяжелого контента">
+        <label class="chk-item" style="margin-top:10px;"><input type="checkbox" id="blGlobal"> Сделать глобальным для всех нод</label>
+        <div class="btns"><button onclick="submitCreateBlacklistProfile()" class="btn">Создать</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
+}
+
+async function submitCreateBlacklistProfile() {
+    const name=document.getElementById("blName").value;
+    if (!name) { toast("Введите название","err"); return; }
+    const desc=document.getElementById("blDesc").value;
+    const isGlobal=document.getElementById("blGlobal").checked;
+    const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
+    try {
+        const r=await fetch(`${API}/admin/blacklist-profiles`,{method:"POST",headers:h,body:JSON.stringify({name,description:desc,is_global:isGlobal})});
+        if (r.ok) { closeModal(); toast("Шаблон Блэклиста создан!","ok"); loadBlacklistProfiles(); }
+        else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+    } catch(e) { toast("Ошибка сети","err"); }
+}
+
+function openEditBlacklistRules(profileId) {
+    const p=blacklistProfilesCache.find(x=>x.id===profileId); if (!p) return;
+    const rulesList = (p.rules || []).map(r => `
+        <div class="ncard" style="padding:10px; margin-bottom:6px;">
+            <div class="ncard-top" style="margin-bottom:0;">
+                <div class="flex">
+                    <span class="badge ${r.entry_type==='domain'?'b-awg':'b-vless'}">${r.entry_type.toUpperCase()}</span>
+                    <strong>${r.target_value}</strong>
+                </div>
+                <button onclick="delBlacklistRule(${p.id}, ${r.id})" class="btn-danger btn-xs">🗑️</button>
+            </div>
+        </div>
+    `).join("");
+
+    modal(`<h2>Шаблон: ${p.name}</h2><p class="sub">Добавление доменов или IP подсетей в список</p>
+        <div style="margin-bottom:14px; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid var(--border);">
+            <label style="margin-top:0;">+ Добавить запись в ЧС</label>
+            <div class="row2">
+                <select id="rType"><option value="domain">Домен (сайт)</option><option value="ip">IP / Подсеть CIDR</option></select>
+                <input id="rVal" placeholder="tiktok.com или 185.220.101.5">
+            </div>
+            <button onclick="submitAddBlacklistRule(${p.id})" class="btn btn-sm btn-w" style="margin-top:8px;">Добавить в ЧС</button>
+        </div>
+        <div style="font-size:12px; font-weight:700; margin-bottom:8px;">Активные блокировки (${(p.rules||[]).length}):</div>
+        <div style="max-height:240px; overflow-y:auto;">${rulesList || '<div class="empty-txt">Нет записей</div>'}</div>
+        <div class="btns"><button onclick="closeModal()" class="btn-ghost btn-w">Закрыть</button></div>`);
+}
+
+async function submitAddBlacklistRule(profileId) {
+    const type=document.getElementById("rType").value;
+    const val=document.getElementById("rVal").value.trim();
+    if (!val) { toast("Введите домен или IP","err"); return; }
+    const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
+    try {
+        const r=await fetch(`${API}/admin/blacklist-profiles/${profileId}/rules`,{method:"POST",headers:h,body:JSON.stringify({entry_type:type,target_value:val})});
+        if (r.ok) { toast("Правило добавлено!","ok"); openEditBlacklistRules(profileId); loadBlacklistProfiles(); }
+        else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+    } catch(e) { toast("Ошибка сети","err"); }
+}
+
+async function delBlacklistRule(profileId, ruleId) {
+    const h={"Authorization":`Bearer ${token}`};
+    try {
+        const r=await fetch(`${API}/admin/blacklist-profiles/${profileId}/rules/${ruleId}`,{method:"DELETE",headers:h});
+        if (r.ok) { toast("Правило удалено","ok"); openEditBlacklistRules(profileId); loadBlacklistProfiles(); }
+        else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+    } catch(e) { toast("Ошибка сети","err"); }
+}
+
+function openAssignBlacklistModal(agencyId, agencyName) {
+    const opts = `<option value="">— Без блокировок —</option>` + blacklistProfilesCache.map(p=>`<option value="${p.id}">${p.name}</option>`).join("");
+    modal(`<h2>Назначить Блэклист</h2><p class="sub">Компания: <strong>${agencyName}</strong></p>
+        <label>Шаблон Чёрного Списка</label><select id="assignBlSel">${opts}</select>
+        <div class="btns"><button onclick="submitAssignBlacklistProfile(${agencyId})" class="btn">Применить</button><button onclick="closeModal()" class="btn-ghost">Отмена</button></div>`);
+}
+
+async function submitAssignBlacklistProfile(agencyId) {
+    const val=document.getElementById("assignBlSel").value;
+    const pid = val ? parseInt(val) : null;
+    const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
+    try {
+        const r=await fetch(`${API}/admin/agencies/${agencyId}/blacklist-profile`,{method:"PUT",headers:h,body:JSON.stringify({blacklist_profile_id:pid})});
+        if (r.ok) { closeModal(); toast("Шаблон Блэклиста назначен компании!","ok"); loadCompanies(); syncAllBlacklists(); }
+        else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+    } catch(e) { toast("Ошибка сети","err"); }
+}
+
+async function syncAllBlacklists() {
+    showProg("Синхронизация правил с нодами…", "Подключение по SSH и обновление ipset / DNS");
+    const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
+    try {
+        const r=await fetch(`${API}/admin/blacklist-profiles/sync`,{method:"POST",headers:h});
+        hideProg();
+        if (r.ok) { toast("Правила блокировок успешно применены на нодах!","ok"); }
+        else { const e=await r.json(); toast(e.detail||"Ошибка синхронизации","err"); }
+    } catch(e) { hideProg(); toast("Ошибка подключения","err"); }
+}
 </script>
 </body>
 </html>

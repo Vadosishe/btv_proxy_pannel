@@ -38,6 +38,8 @@ class AgencyResponse(BaseModel):
     used_vless: int = 0
     template_id: Optional[int] = None
     template_name: str = ""
+    blacklist_profile_id: Optional[int] = None
+    blacklist_profile_name: str = ""
     created_at: datetime
 
     class Config:
@@ -54,6 +56,7 @@ class NodeCreate(BaseModel):
     xui_inbound_id: Optional[int] = None
     amnezia_url: Optional[str] = None
     amnezia_server_id: Optional[int] = None
+    blacklist_profile_id: Optional[int] = None
 
 class NodeResponse(BaseModel):
     id: int
@@ -64,6 +67,8 @@ class NodeResponse(BaseModel):
     xui_inbound_id: Optional[int]
     amnezia_url: Optional[str]
     amnezia_server_id: Optional[int]
+    blacklist_profile_id: Optional[int] = None
+    blacklist_profile_name: str = ""
     created_at: datetime
 
     class Config:
@@ -81,6 +86,38 @@ class ClientKeyResponse(BaseModel):
     protocol: ProtocolType
     config_content: str
     remote_client_id: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class BlacklistRuleCreate(BaseModel):
+    entry_type: EntryType
+    target_value: str
+
+class BlacklistRuleResponse(BaseModel):
+    id: int
+    profile_id: int
+    entry_type: EntryType
+    target_value: str
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class BlacklistProfileCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    is_global: bool = False
+    rules: Optional[List[BlacklistRuleCreate]] = []
+
+class BlacklistProfileResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    is_global: bool = False
+    rules: List[BlacklistRuleResponse] = []
     created_at: datetime
 
     class Config:
