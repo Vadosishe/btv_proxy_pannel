@@ -104,20 +104,110 @@ class AmneziaClient:
         """Converts raw Amnezia WireGuard config string to native Amnezia vpn://AAAL... URI format."""
         if not raw_conf:
             return ""
-        if raw_conf.startswith("vpn://"):
-            return format_amnezia_vpn_link(raw_conf)
-        compressed = zlib.compress(raw_conf.encode('utf-8'))
-        header = bytes([0, 0, 11, 63])  # Amnezia magic header '\x00\x00\x0b\x3f' (AAAL)
-        b64 = base64.urlsafe_b64encode(header + compressed).decode('utf-8').rstrip('=')
-        return f"vpn://{b64}"
+        return format_amnezia_vpn_link(raw_conf)
+
+
+def wg_conf_to_amnezia_container_json(wg_conf: str, default_ip: str = "5.129.229.25") -> str:
+    """Converts a WireGuard .conf string to official Amnezia Container JSON URI (vpn://AAALP3ja...)."""
+    lines = [l.strip() for l in wg_conf.splitlines() if l.strip() and not l.strip().startswith("#")]
+    params = {}
+    for line in lines:
+        if "=" in line:
+            k, v = line.split("=", 1)
+            params[k.strip()] = v.strip()
+
+    address = params.get("Address", "").split("/")[0]
+    dns_servers = [d.strip() for d in params.get("DNS", "1.1.1.1, 1.0.0.1").split(",")]
+    dns1 = dns_servers[0] if len(dns_servers) > 0 else "1.1.1.1"
+    dns2 = dns_servers[1] if len(dns_servers) > 1 else "1.0.0.1"
+
+    endpoint = params.get("Endpoint", f"{default_ip}:41679")
+    ep_parts = endpoint.rsplit(":", 1)
+    host = ep_parts[0] if ep_parts[0] else default_ip
+    port = int(ep_parts[1]) if len(ep_parts) > 1 else 41679
+
+    last_config_dict = {
+        "H1": params.get("H1", ""),
+        "H2": params.get("H2", ""),
+        "H3": params.get("H3", ""),
+        "H4": params.get("H4", ""),
+        "I1": params.get("I1", ""),
+        "I2": params.get("I2", ""),
+        "I3": params.get("I3", ""),
+        "I4": params.get("I4", ""),
+        "I5": params.get("I5", ""),
+        "Jc": params.get("Jc", "6"),
+        "Jmax": params.get("Jmax", "50"),
+        "Jmin": params.get("Jmin", "10"),
+        "S1": params.get("S1", "145"),
+        "S2": params.get("S2", "123"),
+        "S3": params.get("S3", "27"),
+        "S4": params.get("S4", "16"),
+        "allowed_ips": [a.strip() for a in params.get("AllowedIPs", "0.0.0.0/0, ::/0").split(",")],
+        "clientId": params.get("PublicKey", ""),
+        "client_ip": address,
+        "client_priv_key": params.get("PrivateKey", ""),
+        "client_pub_key": params.get("PublicKey", ""),
+        "config": wg_conf,
+        "hostName": host,
+        "mtu": params.get("MTU", "1280"),
+        "persistent_keep_alive": params.get("PersistentKeepalive", "25"),
+        "port": port,
+        "psk_key": params.get("PresharedKey", ""),
+        "server_pub_key": params.get("PublicKey", "")
+    }
+
+    container_json = {
+        "containers": [
+            {
+                "awg": {
+                    "H1": params.get("H1", ""),
+                    "H2": params.get("H2", ""),
+                    "H3": params.get("H3", ""),
+                    "H4": params.get("H4", ""),
+                    "Jc": params.get("Jc", "6"),
+                    "Jmax": params.get("Jmax", "50"),
+                    "Jmin": params.get("Jmin", "10"),
+                    "S1": params.get("S1", "145"),
+                    "S2": params.get("S2", "123"),
+                    "last_config": json.dumps(last_config_dict, indent=4, ensure_ascii=False),
+                    "port": str(port),
+                    "transport_proto": "udp",
+                    "I1": params.get("I1", ""),
+                    "I2": params.get("I2", ""),
+                    "I3": params.get("I3", ""),
+                    "I4": params.get("I4", ""),
+                    "I5": params.get("I5", ""),
+                    "S3": params.get("S3", "27"),
+                    "S4": params.get("S4", "16"),
+                    "protocol_version": "2",
+                    "subnet_address": "10.8.1.0"
+                },
+                "container": "amnezia-awg2"
+            }
+        ],
+        "defaultContainer": "amnezia-awg2",
+        "description": host,
+        "dns1": dns1,
+        "dns2": dns2,
+        "hostName": host
+    }
+
+    json_bytes = json.dumps(container_json, ensure_ascii=False).encode('utf-8')
+    compressed = zlib.compress(json_bytes, level=9)
+    header = bytes([0, 0, 11, 63])
+    b64 = base64.urlsafe_b64encode(header + compressed).decode('utf-8').rstrip('=')
+    return f"vpn://{b64}"
 
 
 def format_amnezia_vpn_link(vpn_link_or_conf: str) -> str:
-    """Ensures Amnezia link has native AAAL magic header prefix."""
+    """Ensures Amnezia link is formatted in full native Amnezia Container JSON format (vpn://AAALP3ja...)."""
     if not vpn_link_or_conf:
         return ""
-    if vpn_link_or_conf.startswith("vpn://AAAL"):
+    if vpn_link_or_conf.startswith("vpn://AAALP3ja"):
         return vpn_link_or_conf
+
+    raw_conf_text = ""
     if vpn_link_or_conf.startswith("vpn://"):
         b64 = vpn_link_or_conf.replace("vpn://", "")
         missing_padding = len(b64) % 4
@@ -125,15 +215,24 @@ def format_amnezia_vpn_link(vpn_link_or_conf: str) -> str:
             b64 += '=' * (4 - missing_padding)
         try:
             raw = base64.b64decode(b64, altchars='-_')
-            if not raw.startswith(b"\x00\x00\x0b\x3f"):
-                header = bytes([0, 0, 11, 63])
-                new_b64 = base64.urlsafe_b64encode(header + raw).decode('utf-8').rstrip('=')
-                return f"vpn://{new_b64}"
+            # Check if it's already container JSON
+            for off in [4, 6, 0]:
+                try:
+                    dec = zlib.decompress(raw[off:])
+                    text = dec.decode('utf-8', errors='ignore')
+                    if '"containers"' in text:
+                        return vpn_link_or_conf
+                    if "[Interface]" in text:
+                        raw_conf_text = text
+                        break
+                except Exception:
+                    pass
         except Exception:
             pass
     elif "[Interface]" in vpn_link_or_conf:
-        compressed = zlib.compress(vpn_link_or_conf.encode('utf-8'))
-        header = bytes([0, 0, 11, 63])
-        b64 = base64.urlsafe_b64encode(header + compressed).decode('utf-8').rstrip('=')
-        return f"vpn://{b64}"
+        raw_conf_text = vpn_link_or_conf
+
+    if raw_conf_text:
+        return wg_conf_to_amnezia_container_json(raw_conf_text)
+
     return vpn_link_or_conf
