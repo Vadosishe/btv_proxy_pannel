@@ -223,10 +223,30 @@ def _get_base_name(name: str) -> str:
 def _get_app_links() -> str:
     return """
     <div class="apps-grid">
-        <a href="https://amnezia.org" target="_blank" class="app-btn">🌐 Amnezia.org (Официальный сайт)</a>
-        <a href="https://storage.googleapis.com/amnezia/amnezia.org" target="_blank" class="app-btn">☁️ Зеркало Amnezia (Google Cloud)</a>
-        <a href="https://dfvpn.com/" target="_blank" class="app-btn">📱 defaultVPN (iPhone iOS App Store)</a>
-        <a href="https://github.com/amnezia-vpn/amnezia-client/releases" target="_blank" class="app-btn">📦 GitHub Releases (Desktop / APK)</a>
+        <a href="https://amnezia.org" target="_blank" class="app-btn">
+            <span class="app-btn-title">🌐 Amnezia.org</span>
+            <span class="app-btn-sub">Официальный сайт проекта</span>
+        </a>
+        <a href="https://storage.googleapis.com/amnezia/amnezia.org" target="_blank" class="app-btn">
+            <span class="app-btn-title">☁️ Зеркало Amnezia</span>
+            <span class="app-btn-sub">Запасная ссылка, если офф. сайт не открывается</span>
+        </a>
+        <a href="https://dfvpn.com/" target="_blank" class="app-btn">
+            <span class="app-btn-title">🍎 defaultVPN (iPhone / Apple)</span>
+            <span class="app-btn-sub">Легкое клиентское приложение для iOS устройств</span>
+        </a>
+        <a href="https://apps.apple.com/app/amneziavpn/id1600299950" target="_blank" class="app-btn">
+            <span class="app-btn-title">🍏 App Store (iOS)</span>
+            <span class="app-btn-sub">Официальное приложение AmneziaVPN в App Store</span>
+        </a>
+        <a href="https://play.google.com/store/apps/details?id=org.amnezia.vpn" target="_blank" class="app-btn">
+            <span class="app-btn-title">🤖 Google Play (Android)</span>
+            <span class="app-btn-sub">Официальное приложение AmneziaVPN в Google Play</span>
+        </a>
+        <a href="https://github.com/amnezia-vpn/amnezia-client/releases" target="_blank" class="app-btn">
+            <span class="app-btn-title">📦 GitHub Releases</span>
+            <span class="app-btn-sub">Скачать установочные файлы (если ничего не работает)</span>
+        </a>
     </div>
     """
 
@@ -344,8 +364,10 @@ def _get_styles() -> str:
             background: #f1f5f9; color: var(--text);
             padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
             text-decoration: none; border: 1px solid var(--border); transition: 0.15s;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
+            display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 2px;
         }
-        .app-btn:hover { background: #ffffff; border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+        .app-btn:hover { background: #ffffff; border-color: var(--primary); transform: translateY(-1px); }
+        .app-btn-title { font-weight: 700; color: var(--text); font-size: 13px; }
+        .app-btn-sub { font-size: 11px; color: var(--text-muted); font-weight: 500; }
     </style>
     """
