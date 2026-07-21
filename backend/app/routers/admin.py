@@ -230,6 +230,7 @@ def _template_to_response(t: Template) -> TemplateResponse:
 
 @router.get("/employees")
 def list_all_employees(db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    _ensure_orphan_keys_migrated(db)
     employees = db.query(Employee).all()
     return [_employee_to_dict(e) for e in employees]
 
@@ -253,12 +254,15 @@ async def create_employee_as_superadmin(
         tmpl = agency.template
     
     if not tmpl:
-        raise HTTPException(status_code=400, detail="No template assigned. Assign a template to the agency first.")
+        raise HTTPException(status_code=400, detail="К компании не привязан шаблон. Назначьте шаблон компании.")
+
+    if not tmpl.nodes:
+        raise HTTPException(status_code=400, detail=f"В шаблоне '{tmpl.name}' нет серверных нод! Добавьте ноды в шаблон.")
 
     # Check quota (count employees, not keys)
     employee_count = db.query(Employee).filter(Employee.agency_id == agency_id).count()
     if employee_count >= agency.quota_awg:
-        raise HTTPException(status_code=400, detail=f"Employee quota ({agency.quota_awg}) reached!")
+        raise HTTPException(status_code=400, detail=f"Лимит сотрудников ({agency.quota_awg}) исчерпан!")
 
     return await _create_employee_with_keys(name, agency, tmpl, db)
 
@@ -370,10 +374,41 @@ def add_blackhole_entry(payload: BlackholeCreate, db: Session = Depends(get_db),
 
 # ==================== SHARED HELPERS ====================
 
+def _ensure_orphan_keys_migrated(db: Session, agency_id: int = None):
+    import re, uuid
+    query = db.query(ClientKey).filter(ClientKey.employee_id == None)
+    if agency_id:
+        query = query.filter(ClientKey.agency_id == agency_id)
+    orphans = query.all()
+    if not orphans:
+        return
+    groups = {}
+    for k in orphans:
+        base = re.sub(r'\s*\((phone|pc|Phone|PC)\)\s*$', '', k.employee_name).strip()
+        key = (base, k.agency_id)
+        if key not in groups:
+            groups[key] = []
+        groups[key].append(k)
+        
+    for (base_name, aid), keys_list in groups.items():
+        emp = Employee(name=base_name, agency_id=aid, secret_uuid=str(uuid.uuid4()))
+        db.add(emp)
+        db.flush()
+        for k in keys_list:
+            k.employee_id = emp.id
+    db.commit()
+
+
 async def _create_employee_with_keys(name: str, agency: Agency, template: Template, db: Session) -> dict:
     """Create an Employee and all keys on template nodes."""
     from app.services.amnezia import AmneziaClient
     from app.config import settings
+
+    if not template or not template.nodes:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"В шаблоне '{template.name if template else 'Без названия'}' нет привязанных нод! Сначала добавьте ноды в шаблон."
+        )
 
     employee = Employee(name=name, agency_id=agency.id)
     db.add(employee)
@@ -422,6 +457,14 @@ async def _create_employee_with_keys(name: str, agency: Agency, template: Templa
             created_keys.append({"name": name, "node": node.name, "status": "ok"})
         except Exception as e:
             errors.append({"name": name, "node": node.name, "error": str(e)})
+
+    if not created_keys:
+        db.rollback()
+        err_msg = "; ".join([e["error"] for e in errors]) if errors else "Неизвестная ошибка нод"
+        raise HTTPException(
+            status_code=400,
+            detail=f"Не удалось создать ни одного ключа на серверах: {err_msg}"
+        )
 
     db.commit()
     db.refresh(employee)

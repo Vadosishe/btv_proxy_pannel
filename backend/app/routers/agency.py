@@ -43,6 +43,8 @@ def get_my_agency(db: Session = Depends(get_db), current_user: User = Depends(re
 
 @router.get("/employees")
 def list_my_employees(db: Session = Depends(get_db), current_user: User = Depends(require_agency)):
+    from app.routers.admin import _ensure_orphan_keys_migrated
+    _ensure_orphan_keys_migrated(db, agency_id=current_user.agency_id)
     employees = db.query(Employee).filter(Employee.agency_id == current_user.agency_id).all()
     result = []
     for e in employees:
