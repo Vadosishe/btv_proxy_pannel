@@ -567,7 +567,8 @@ async function loadTemplates() {
     } catch(e) { grid.innerHTML=`<div class="spin-wrap" style="color:var(--danger)">Ошибка</div>`; }
 }
 
-function openTmplModal() {
+async function openTmplModal() {
+    if (!nodesCache.length) await loadNodes();
     const nodesHtml = nodesCache.map(n => `<label class="chk-item"><input type="checkbox" value="${n.id}"> ${n.name} (${n.location}) <span class="badge ${n.node_type==='amnezia'?'b-awg':'b-vless'}" style="font-size:9px;">${n.node_type==='amnezia'?'AWG':'XUI'}</span></label>`).join("");
     modal(`<h2>Создать шаблон</h2><p class="sub">Выберите ноды для этого шаблона</p>
         <label>Название</label><input id="tmplName" placeholder="Premium">
@@ -585,7 +586,8 @@ async function submitTemplate() {
     else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
 }
 
-function openEditTmpl(id) {
+async function openEditTmpl(id) {
+    if (!nodesCache.length) await loadNodes();
     const t=templatesCache.find(x=>x.id===id); if (!t) return;
     const nodesHtml = nodesCache.map(n => `<label class="chk-item"><input type="checkbox" value="${n.id}" ${t.node_ids.includes(n.id)?'checked':''}> ${n.name} (${n.location}) <span class="badge ${n.node_type==='amnezia'?'b-awg':'b-vless'}" style="font-size:9px;">${n.node_type==='amnezia'?'AWG':'XUI'}</span></label>`).join("");
     modal(`<h2>Редактировать: ${t.name}</h2><p class="sub">Изменить ноды шаблона</p>
