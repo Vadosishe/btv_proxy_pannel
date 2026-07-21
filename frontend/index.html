@@ -584,18 +584,15 @@
         showSection('authSection');
         if (!silent) showToast('Вы вышли из системы', 'info');
     }
-        document.getElementById('userBar').classList.add('hide');
-        showSection('authSection');
-    }
 
     function initApp() {
         document.getElementById('userEmail').innerText = state.user.email;
-        document.getElementById('userRole').innerText = state.user.role;
+        document.getElementById('userRole').innerText = (state.user.role || '').toUpperCase();
         document.getElementById('userBar').classList.remove('hide');
         
         // Show role tabs
-        const role = state.user.role;
-        if (role === 'SUPERADMIN' || role === 'AGENCY') {
+        const role = (state.user.role || '').toUpperCase();
+        if (role === 'SUPERADMIN' || role === 'AGENCY' || role === 'AGENCY_ADMIN') {
             document.getElementById('tabEmployees').classList.remove('hide');
         }
         if (role === 'SUPERADMIN') {
@@ -605,7 +602,7 @@
         
         showSection('dashboardSection');
         loadMyKeys();
-        if (role === 'SUPERADMIN' || role === 'AGENCY') loadEmployees();
+        if (role === 'SUPERADMIN' || role === 'AGENCY' || role === 'AGENCY_ADMIN') loadEmployees();
         if (role === 'SUPERADMIN') { loadAgencies(); loadNodes(); }
     }
 
@@ -641,13 +638,17 @@
         }
     }
 
+    function isSuperAdmin() { return (state.user.role || '').toUpperCase() === 'SUPERADMIN'; }
+    function isAgency() { return ['AGENCY', 'AGENCY_ADMIN'].includes((state.user.role || '').toUpperCase()); }
+    function isClient() { return (state.user.role || '').toUpperCase() === 'CLIENT'; }
+
     async function loadMyKeys() {
         const wrap = document.getElementById('myKeysList');
         try {
             let keys = [];
-            if (state.user.role === 'CLIENT') {
+            if (isClient()) {
                 keys = await apiReq('/client/portal/keys');
-            } else if (state.user.role === 'AGENCY') {
+            } else if (isAgency()) {
                 keys = await apiReq('/agency/keys');
             } else {
                 keys = await apiReq('/admin/keys');
@@ -714,7 +715,7 @@
     async function loadEmployees() {
         const tb = document.getElementById('employeesTable');
         try {
-            const emps = await apiReq(state.user.role === 'SUPERADMIN' ? '/admin/employees' : '/agency/employees');
+            const emps = await apiReq(isSuperAdmin() ? '/admin/employees' : '/agency/employees');
             state.employees = emps;
             tb.innerHTML = emps.map(e => `
                 <tr>
@@ -799,12 +800,12 @@
         const devType = document.getElementById('issueDeviceType').value;
         
         try {
-            const url = state.user.role === 'SUPERADMIN' ? '/admin/keys/issue' : '/agency/keys/issue';
+            const url = isSuperAdmin() ? '/admin/keys/issue' : '/agency/keys/issue';
             await apiReq(url, 'POST', { employee_id: parseInt(empId), node_id: parseInt(nodeId), device_type: devType });
             closeModal('modalIssueKey');
             showToast('VPN Ключ успешно выпущен!', 'ok');
             loadMyKeys();
-            if (state.user.role === 'SUPERADMIN' || state.user.role === 'AGENCY') loadEmployees();
+            if (isSuperAdmin() || isAgency()) loadEmployees();
         } catch(err) {
             showToast(err.message, 'err');
         }
@@ -817,7 +818,7 @@
         const pos = document.getElementById('empPosition').value;
         
         try {
-            const url = state.user.role === 'SUPERADMIN' ? '/admin/employees' : '/agency/employees';
+            const url = isSuperAdmin() ? '/admin/employees' : '/agency/employees';
             await apiReq(url, 'POST', { name, email, position: pos });
             closeModal('modalCreateEmployee');
             showToast('Сотрудник успешно создан!', 'ok');
