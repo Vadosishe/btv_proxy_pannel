@@ -558,12 +558,29 @@ async function submitBulkEmp() {
 
 async function delEmployee(id) {
     if (!confirm("Удалить сотрудника и все его VPN-ключи?")) return;
-    showProg("Удаление…","Отзыв ключей на серверах");
+    showProg("Инициализация удаления…", "Получение списка ключей");
     try {
-        const r=await fetch(`${API}/admin/employees/${id}`,{method:"DELETE",headers:{"Authorization":`Bearer ${token}`}});
+        const h={"Authorization":`Bearer ${token}`};
+        const rTasks=await fetch(`${API}/admin/employees/${id}/delete_tasks`,{headers:h});
+        if (!rTasks.ok) {
+            const r=await fetch(`${API}/admin/employees/${id}`,{method:"DELETE",headers:h});
+            hideProg();
+            if (r.ok) { toast("Сотрудник удалён","ok"); loadEmployees(); loadCompanies(); }
+            else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+            return;
+        }
+        const data=await rTasks.json();
+        const keys=data.keys||[];
+        
+        for (let i=0; i<keys.length; i++) {
+            const k=keys[i];
+            showProg(`Удаление ключа ${i+1} из ${keys.length}: ${k.name}`, `Отзыв с сервера: ${k.node_name}`);
+            await fetch(`${API}/admin/employees/${id}/revoke_key/${k.id}`,{method:"DELETE",headers:h});
+        }
+        
         hideProg();
-        if (r.ok) { toast("Сотрудник удалён","ok"); loadEmployees(); loadCompanies(); }
-        else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+        toast(`Сотрудник ${data.employee_name||''} и все ${keys.length} ключей отозваны`,"ok");
+        loadEmployees(); loadCompanies();
     } catch(e) { hideProg(); toast("Ошибка сети","err"); }
 }
 
@@ -808,12 +825,29 @@ async function submitBulkEmpAgency() {
 
 async function delEmployeeAgency(id) {
     if (!confirm("Удалить сотрудника и все его VPN-ключи?")) return;
-    showProg("Удаление…","Отзыв ключей на серверах");
+    showProg("Инициализация удаления…", "Получение списка ключей");
     try {
-        const r=await fetch(`${API}/agency/employees/${id}`,{method:"DELETE",headers:{"Authorization":`Bearer ${token}`}});
+        const h={"Authorization":`Bearer ${token}`};
+        const rTasks=await fetch(`${API}/agency/employees/${id}/delete_tasks`,{headers:h});
+        if (!rTasks.ok) {
+            const r=await fetch(`${API}/agency/employees/${id}`,{method:"DELETE",headers:h});
+            hideProg();
+            if (r.ok) { toast("Сотрудник удалён","ok"); loadAgencyData(); }
+            else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+            return;
+        }
+        const data=await rTasks.json();
+        const keys=data.keys||[];
+        
+        for (let i=0; i<keys.length; i++) {
+            const k=keys[i];
+            showProg(`Удаление ключа ${i+1} из ${keys.length}: ${k.name}`, `Отзыв с сервера: ${k.node_name}`);
+            await fetch(`${API}/agency/employees/${id}/revoke_key/${k.id}`,{method:"DELETE",headers:h});
+        }
+        
         hideProg();
-        if (r.ok) { toast("Сотрудник удалён","ok"); loadAgencyData(); }
-        else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+        toast(`Сотрудник ${data.employee_name||''} и все ${keys.length} ключей отозваны`,"ok");
+        loadAgencyData();
     } catch(e) { hideProg(); toast("Ошибка сети","err"); }
 }
 

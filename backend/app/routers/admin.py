@@ -362,6 +362,44 @@ async def create_employee_as_superadmin(
 
     return await _create_employee_with_keys(name, agency, tmpl, db)
 
+@router.get("/employees/{employee_id}/delete_tasks")
+def get_employee_delete_tasks(employee_id: int, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    employee = db.query(Employee).get(employee_id)
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    keys = []
+    for k in employee.keys:
+        keys.append({
+            "id": k.id,
+            "name": k.employee_name,
+            "node_name": k.node.name if k.node else "Неизвестный сервер"
+        })
+    return {
+        "employee_id": employee.id,
+        "employee_name": employee.name,
+        "keys": keys
+    }
+
+@router.delete("/employees/{employee_id}/revoke_key/{key_id}")
+async def revoke_employee_single_key(employee_id: int, key_id: int, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    employee = db.query(Employee).get(employee_id)
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    key = db.query(ClientKey).filter(ClientKey.id == key_id, ClientKey.employee_id == employee_id).first()
+    if not key:
+        raise HTTPException(status_code=404, detail="Key not found for this employee")
+    
+    await _revoke_single_key(key, db)
+    
+    remaining = db.query(ClientKey).filter(ClientKey.employee_id == employee_id).count()
+    employee_deleted = False
+    if remaining == 0:
+        db.delete(employee)
+        db.commit()
+        employee_deleted = True
+        
+    return {"status": "ok", "key_id": key_id, "remaining": remaining, "employee_deleted": employee_deleted}
+
 @router.delete("/employees/{employee_id}")
 async def delete_employee_as_superadmin(employee_id: int, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
     employee = db.query(Employee).get(employee_id)
@@ -434,26 +472,33 @@ async def create_key_as_superadmin(
     db.refresh(client_key)
     return client_key
 
-@router.delete("/keys/{key_id}")
-async def delete_key_as_superadmin(key_id: int, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+async def _revoke_single_key(key: ClientKey, db: Session):
     from app.services.amnezia import AmneziaClient
     from app.services.xui import XUIClient
     from app.config import settings
 
+    if key.node:
+        node = key.node
+        try:
+            if key.protocol == ProtocolType.AMNEZIA_WG and key.remote_client_id:
+                amnezia_target_url = node.amnezia_url or settings.AMNEZIA_API_URL
+                amnezia = AmneziaClient(amnezia_target_url, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
+                await amnezia.delete_awg_client(key.remote_client_id)
+            elif key.protocol == ProtocolType.VLESS and node.xui_url and node.xui_inbound_id:
+                xui = XUIClient(node.xui_url, username=node.xui_username, password=node.xui_password, api_token=node.xui_api_token)
+                await xui.delete_client(node.xui_inbound_id, key.remote_client_id, email=f"{key.employee_name}_{key.remote_client_id[:6] if key.remote_client_id else ''}")
+        except Exception:
+            pass
+    db.delete(key)
+    db.commit()
+
+
+@router.delete("/keys/{key_id}")
+async def delete_key_as_superadmin(key_id: int, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
     key = db.query(ClientKey).get(key_id)
     if not key:
         raise HTTPException(status_code=404, detail="Key not found")
-    if key.node:
-        node = key.node
-        if key.protocol == ProtocolType.AMNEZIA_WG and key.remote_client_id:
-            amnezia_target_url = node.amnezia_url or settings.AMNEZIA_API_URL
-            amnezia = AmneziaClient(amnezia_target_url, settings.AMNEZIA_ADMIN_EMAIL, settings.AMNEZIA_ADMIN_PASSWORD)
-            await amnezia.delete_awg_client(key.remote_client_id)
-        elif key.protocol == ProtocolType.VLESS and node.xui_url and node.xui_inbound_id:
-            xui = XUIClient(node.xui_url, username=node.xui_username, password=node.xui_password, api_token=node.xui_api_token)
-            await xui.delete_client(node.xui_inbound_id, key.remote_client_id, email=f"{key.employee_name}_{key.remote_client_id[:6] if key.remote_client_id else ''}")
-    db.delete(key)
-    db.commit()
+    await _revoke_single_key(key, db)
     return {"detail": "Key revoked successfully by SuperAdmin"}
 
 

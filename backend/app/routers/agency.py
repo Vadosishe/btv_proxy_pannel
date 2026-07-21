@@ -125,6 +125,66 @@ async def create_employee(
     return await _create_employee_with_keys(name, agency, agency.template, db)
 
 
+@router.get("/employees/{employee_id}/delete_tasks")
+def get_employee_delete_tasks_agency(
+    employee_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_agency)
+):
+    employee = db.query(Employee).filter(
+        Employee.id == employee_id,
+        Employee.agency_id == current_user.agency_id
+    ).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Сотрудник не найден")
+
+    keys = []
+    for k in employee.keys:
+        keys.append({
+            "id": k.id,
+            "name": k.employee_name,
+            "node_name": k.node.name if k.node else "Неизвестный сервер"
+        })
+    return {
+        "employee_id": employee.id,
+        "employee_name": employee.name,
+        "keys": keys
+    }
+
+
+@router.delete("/employees/{employee_id}/revoke_key/{key_id}")
+async def revoke_employee_single_key_agency(
+    employee_id: int, key_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_agency)
+):
+    employee = db.query(Employee).filter(
+        Employee.id == employee_id,
+        Employee.agency_id == current_user.agency_id
+    ).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Сотрудник не найден")
+
+    key = db.query(ClientKey).filter(
+        ClientKey.id == key_id,
+        ClientKey.employee_id == employee_id
+    ).first()
+    if not key:
+        raise HTTPException(status_code=404, detail="Ключ не найден")
+
+    from app.routers.admin import _revoke_single_key
+    await _revoke_single_key(key, db)
+
+    remaining = db.query(ClientKey).filter(ClientKey.employee_id == employee_id).count()
+    employee_deleted = False
+    if remaining == 0:
+        db.delete(employee)
+        db.commit()
+        employee_deleted = True
+
+    return {"status": "ok", "key_id": key_id, "remaining": remaining, "employee_deleted": employee_deleted}
+
+
 @router.delete("/employees/{employee_id}")
 async def delete_employee(
     employee_id: int,
