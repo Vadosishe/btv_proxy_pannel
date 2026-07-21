@@ -1,10 +1,11 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Text, Table
 from sqlalchemy.orm import relationship
 import enum
 
 from app.database import Base
+
 
 class UserRole(str, enum.Enum):
     SUPERADMIN = "superadmin"
@@ -18,6 +19,25 @@ class EntryType(str, enum.Enum):
     DOMAIN = "domain"
     IP = "ip"
 
+
+# ========== Template <-> Node (many-to-many) ==========
+template_nodes = Table(
+    "template_nodes", Base.metadata,
+    Column("template_id", Integer, ForeignKey("templates.id", ondelete="CASCADE"), primary_key=True),
+    Column("node_id", Integer, ForeignKey("nodes.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class Template(Base):
+    __tablename__ = "templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    nodes = relationship("Node", secondary=template_nodes, backref="templates")
+
+
 class Agency(Base):
     __tablename__ = "agencies"
 
@@ -25,10 +45,14 @@ class Agency(Base):
     name = Column(String, unique=True, index=True, nullable=False)
     quota_awg = Column(Integer, default=20)
     quota_vless = Column(Integer, default=10)
+    template_id = Column(Integer, ForeignKey("templates.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    template = relationship("Template")
     admins = relationship("User", back_populates="agency")
     keys = relationship("ClientKey", back_populates="agency", cascade="all, delete-orphan")
+    employees = relationship("Employee", back_populates="agency", cascade="all, delete-orphan")
+
 
 class User(Base):
     __tablename__ = "users"
@@ -42,6 +66,7 @@ class User(Base):
 
     agency = relationship("Agency", back_populates="admins")
 
+
 class NodeType(str, enum.Enum):
     XUI = "xui"
     AMNEZIA = "amnezia"
@@ -52,7 +77,7 @@ class Node(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     location = Column(String, nullable=False)
-    node_type = Column(String, default="xui") # "xui" or "amnezia"
+    node_type = Column(String, default="xui")  # "xui" or "amnezia"
     
     # 3X-UI credentials & Inbound ID
     xui_url = Column(String, nullable=True)
@@ -66,9 +91,21 @@ class Node(Base):
     amnezia_server_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-
     keys = relationship("ClientKey", back_populates="node", cascade="all, delete-orphan")
 
+
+class Employee(Base):
+    """Groups all VPN keys for a single person across multiple nodes."""
+    __tablename__ = "employees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=False)
+    secret_uuid = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    agency = relationship("Agency", back_populates="employees")
+    keys = relationship("ClientKey", back_populates="employee", cascade="all, delete-orphan")
 
 
 class ClientKey(Base):
@@ -78,6 +115,7 @@ class ClientKey(Base):
     secret_uuid = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))
     agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=False)
     node_id = Column(Integer, ForeignKey("nodes.id"), nullable=False)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
     
     employee_name = Column(String, nullable=False)
     protocol = Column(Enum(ProtocolType), nullable=False)
@@ -91,6 +129,8 @@ class ClientKey(Base):
 
     agency = relationship("Agency", back_populates="keys")
     node = relationship("Node", back_populates="keys")
+    employee = relationship("Employee", back_populates="keys")
+
 
 class BlackholeEntry(Base):
     __tablename__ = "blackhole_entries"

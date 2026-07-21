@@ -36,6 +36,8 @@ class AgencyResponse(BaseModel):
     quota_vless: int
     used_awg: int = 0
     used_vless: int = 0
+    template_id: Optional[int] = None
+    template_name: str = ""
     created_at: datetime
 
     class Config:
@@ -44,7 +46,7 @@ class AgencyResponse(BaseModel):
 class NodeCreate(BaseModel):
     name: str
     location: str
-    node_type: str = "xui" # "xui" or "amnezia"
+    node_type: str = "xui"  # "xui" or "amnezia"
     xui_url: Optional[str] = None
     xui_api_token: Optional[str] = None
     xui_username: Optional[str] = None
@@ -67,8 +69,6 @@ class NodeResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
-
 class ClientKeyCreate(BaseModel):
     employee_name: str
     protocol: ProtocolType
@@ -86,7 +86,6 @@ class ClientKeyResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
 class BlackholeCreate(BaseModel):
     entry_type: EntryType
     value: str
@@ -101,3 +100,39 @@ class BlackholeResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ========== Template schemas ==========
+
+class TemplateCreate(BaseModel):
+    name: str
+    node_ids: List[int] = []
+
+class TemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    node_ids: Optional[List[int]] = None
+
+class TemplateResponse(BaseModel):
+    id: int
+    name: str
+    node_ids: List[int] = []
+    node_names: List[str] = []
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class EmployeeResponse(BaseModel):
+    id: int
+    name: str
+    agency_id: int
+    agency_name: str = ""
+    secret_uuid: str
+    keys_count: int = 0
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class AssignTemplate(BaseModel):
+    template_id: int
