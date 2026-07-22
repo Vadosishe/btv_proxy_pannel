@@ -734,6 +734,23 @@ def delete_rule_from_profile(profile_id: int, rule_id: int, db: Session = Depend
         pass
     return {"detail": "Правило удалено"}
 
+@router.delete("/blacklist-profiles/{profile_id}")
+def delete_blacklist_profile(profile_id: int, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
+    profile = db.query(BlacklistProfile).get(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Шаблон не найден")
+
+    db.query(Agency).filter(Agency.blacklist_profile_id == profile_id).update({Agency.blacklist_profile_id: None})
+    db.query(Node).filter(Node.blacklist_profile_id == profile_id).update({Node.blacklist_profile_id: None})
+
+    db.delete(profile)
+    db.commit()
+    try:
+        sync_all_blacklist_rules(db)
+    except Exception:
+        pass
+    return {"detail": "Шаблон блэклиста удален"}
+
 @router.put("/agencies/{agency_id}/blacklist-profile")
 def assign_blacklist_profile_to_agency(agency_id: int, payload: dict, db: Session = Depends(get_db), _: User = Depends(require_superadmin)):
     agency = db.query(Agency).get(agency_id)

@@ -296,7 +296,7 @@
                         </div>
                     </div>
                     <div style="font-size:11px; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">Список компаний</div>
-                    <table><thead><tr><th>ID</th><th>Название</th><th>Шаблон</th><th>Квота</th><th>Создана</th><th>Действия</th></tr></thead>
+                    <table><thead><tr><th>ID</th><th>Название</th><th>Шаблон нод</th><th>Шаблон ЧС</th><th>Сотрудники</th><th>Создана</th><th>Действия</th></tr></thead>
                     <tbody id="companiesTbody"></tbody></table>
                 </div>
             </div>
@@ -931,6 +931,7 @@ async function loadBlacklistProfiles() {
                         </div>
                         <div class="flex">
                             <button onclick="openEditBlacklistRules(${p.id})" class="btn-ghost btn-xs">✏️ Правила</button>
+                            <button onclick="delBlacklistProfile(${p.id})" class="btn-danger btn-xs">🗑️ Удалить</button>
                         </div>
                     </div>
                     <div class="ncard-info">${p.description || 'Без описания'}</div>
@@ -938,6 +939,17 @@ async function loadBlacklistProfiles() {
             });
         }
     } catch(e) { grid.innerHTML=`<div class="spin-wrap" style="color:var(--danger)">Ошибка загрузки шаблонов</div>`; }
+}
+
+async function delBlacklistProfile(id) {
+    if (!confirm("Удалить этот шаблон Блэклиста и все его правила?")) return;
+    showProg("Удаление шаблона Блэклиста…", "Очистка правил с нод...");
+    try {
+        const r=await fetch(`${API}/admin/blacklist-profiles/${id}`,{method:"DELETE",headers:{"Authorization":`Bearer ${token}`}});
+        hideProg();
+        if (r.ok) { toast("Шаблон Блэклиста удалён","ok"); loadBlacklistProfiles(); loadCompanies(); }
+        else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
+    } catch(e) { hideProg(); toast("Ошибка сети","err"); }
 }
 
 function openCreateBlacklistModal() {
@@ -970,7 +982,7 @@ function openEditBlacklistRules(profileId) {
                     <span class="badge ${r.entry_type==='domain'?'b-awg':'b-vless'}">${r.entry_type.toUpperCase()}</span>
                     <strong>${r.target_value}</strong>
                 </div>
-                <button onclick="delBlacklistRule(${p.id}, ${r.id})" class="btn-danger btn-xs">🗑️</button>
+                <button onclick="delBlacklistRule(${p.id}, ${r.id}, '${r.target_value}')" class="btn-danger btn-xs">🗑️ Удалить</button>
             </div>
         </div>
     `).join("");
@@ -994,20 +1006,32 @@ async function submitAddBlacklistRule(profileId) {
     const val=document.getElementById("rVal").value.trim();
     if (!val) { toast("Введите домен или IP","err"); return; }
     const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
+    closeModal();
+    showProg(`Применение правила: ${val}…`, "Накатывание блокировок и DNS Sinkhole на VPN-серверах (~5-10 сек)");
     try {
         const r=await fetch(`${API}/admin/blacklist-profiles/${profileId}/rules`,{method:"POST",headers:h,body:JSON.stringify({entry_type:type,target_value:val})});
-        if (r.ok) { toast("Правило добавлено!","ok"); openEditBlacklistRules(profileId); loadBlacklistProfiles(); }
+        hideProg();
+        if (r.ok) {
+            toast(`Правило "${val}" приведено в действие на нодах!`, "ok");
+            loadBlacklistProfiles();
+        }
         else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
-    } catch(e) { toast("Ошибка сети","err"); }
+    } catch(e) { hideProg(); toast("Ошибка сети","err"); }
 }
 
-async function delBlacklistRule(profileId, ruleId) {
+async function delBlacklistRule(profileId, ruleId, targetVal) {
     const h={"Authorization":`Bearer ${token}`};
+    closeModal();
+    showProg(`Удаление правила: ${targetVal||''}…`, "Очистка правила и восстановление доступа на нодах (~5-10 сек)");
     try {
         const r=await fetch(`${API}/admin/blacklist-profiles/${profileId}/rules/${ruleId}`,{method:"DELETE",headers:h});
-        if (r.ok) { toast("Правило удалено","ok"); openEditBlacklistRules(profileId); loadBlacklistProfiles(); }
+        hideProg();
+        if (r.ok) {
+            toast(`Правило "${targetVal||''}" удалено! Доступ восстановлен.`,"ok");
+            loadBlacklistProfiles();
+        }
         else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
-    } catch(e) { toast("Ошибка сети","err"); }
+    } catch(e) { hideProg(); toast("Ошибка сети","err"); }
 }
 
 function openAssignBlacklistModal(agencyId, agencyName) {
@@ -1021,11 +1045,14 @@ async function submitAssignBlacklistProfile(agencyId) {
     const val=document.getElementById("assignBlSel").value;
     const pid = val ? parseInt(val) : null;
     const h={"Authorization":`Bearer ${token}`,"Content-Type":"application/json"};
+    closeModal();
+    showProg("Назначение шаблона ЧС компании…", "Синхронизация правил с VPN-нодами");
     try {
         const r=await fetch(`${API}/admin/agencies/${agencyId}/blacklist-profile`,{method:"PUT",headers:h,body:JSON.stringify({blacklist_profile_id:pid})});
-        if (r.ok) { closeModal(); toast("Шаблон Блэклиста назначен компании!","ok"); loadCompanies(); syncAllBlacklists(); }
+        hideProg();
+        if (r.ok) { toast("Шаблон Блэклиста применен к компании!","ok"); loadCompanies(); }
         else { const e=await r.json(); toast(e.detail||"Ошибка","err"); }
-    } catch(e) { toast("Ошибка сети","err"); }
+    } catch(e) { hideProg(); toast("Ошибка сети","err"); }
 }
 
 async function syncAllBlacklists() {
