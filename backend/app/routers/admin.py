@@ -715,6 +715,10 @@ def add_rule_to_profile(profile_id: int, payload: BlacklistRuleCreate, db: Sessi
     db.add(rule)
     db.commit()
     db.refresh(rule)
+    try:
+        sync_all_blacklist_rules(db)
+    except Exception:
+        pass
     return rule
 
 @router.delete("/blacklist-profiles/{profile_id}/rules/{rule_id}")
@@ -724,6 +728,10 @@ def delete_rule_from_profile(profile_id: int, rule_id: int, db: Session = Depend
         raise HTTPException(status_code=404, detail="Правило не найдено")
     db.delete(rule)
     db.commit()
+    try:
+        sync_all_blacklist_rules(db)
+    except Exception:
+        pass
     return {"detail": "Правило удалено"}
 
 @router.put("/agencies/{agency_id}/blacklist-profile")
@@ -734,6 +742,10 @@ def assign_blacklist_profile_to_agency(agency_id: int, payload: dict, db: Sessio
     profile_id = payload.get("blacklist_profile_id")
     agency.blacklist_profile_id = profile_id
     db.commit()
+    try:
+        sync_all_blacklist_rules(db)
+    except Exception:
+        pass
     return {"detail": "Шаблон блэклиста назначен компании"}
 
 @router.post("/blacklist-profiles/sync")
