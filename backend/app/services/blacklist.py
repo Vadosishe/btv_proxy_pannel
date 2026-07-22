@@ -165,11 +165,22 @@ def sync_node_blacklist(node_id: int, db: Session) -> dict:
             cmd_script += f"ip6tables -I FORWARD 1 -d {ip} -m comment --comment 'b2b_rule' -j DROP\n"
             cmd_script += f"ip6tables -I INPUT 1 -d {ip} -m comment --comment 'b2b_rule' -j DROP\n"
 
-    # Execute SSH commands
+    # Dynamic SSH Credentials for each Remote Node (Timeweb, Racknerd, Aeza)
+    node_ssh_creds = {
+        5: ("5.129.229.25", "root", "x_8,,_CJMuvhwj"),
+        7: ("23.95.48.191", "root", "eY4rP8aiy4X65OQwZ2"),
+        8: ("138.124.59.128", "root", "ntZG8Xpzb23j"),
+    }
+
+    server_ip, ssh_user, ssh_pass = node_ssh_creds.get(node_id, ("5.129.229.25", "root", "x_8,,_CJMuvhwj"))
+    if node.amnezia_url and "://" in node.amnezia_url:
+        server_ip = node.amnezia_url.split("://")[1].split(":")[0]
+
+    # Execute SSH commands on the actual remote node
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(server_ip, username="root", password="x_8,,_CJMuvhwj", timeout=10)
+        ssh.connect(server_ip, username=ssh_user, password=ssh_pass, timeout=10)
 
         stdin, stdout, stderr = ssh.exec_command(f"cat << 'EOF' > /tmp/sync_b2b_rules.sh\n{cmd_script}\nEOF\nbash /tmp/sync_b2b_rules.sh")
         out = stdout.read().decode("utf-8")
@@ -178,6 +189,7 @@ def sync_node_blacklist(node_id: int, db: Session) -> dict:
         ssh.close()
         return {
             "status": "ok",
+            "node_ip": server_ip,
             "hosts_count": len(all_hosts),
             "ipv4_count": len(global_ipv4s),
             "ipv6_count": len(global_ipv6s),
@@ -186,4 +198,4 @@ def sync_node_blacklist(node_id: int, db: Session) -> dict:
         }
     except Exception as e:
         logger.error(f"SSH sync error on node #{node_id} ({server_ip}): {e}")
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "node_ip": server_ip, "message": str(e)}
