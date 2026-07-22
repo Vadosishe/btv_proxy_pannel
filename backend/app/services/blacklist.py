@@ -115,8 +115,10 @@ def sync_node_blacklist(node_id: int, db: Session) -> dict:
     for ip in global_ipv4s:
         cmd_script += f"iptables -C DOCKER-USER -d {ip} -j DROP 2>/dev/null || iptables -I DOCKER-USER 1 -d {ip} -j DROP\n"
         cmd_script += f"iptables -C FORWARD -d {ip} -j DROP 2>/dev/null || iptables -I FORWARD 1 -d {ip} -j DROP\n"
+        cmd_script += f"iptables -C INPUT -d {ip} -j DROP 2>/dev/null || iptables -I INPUT 1 -d {ip} -j DROP\n"
     for ip in global_ipv6s:
         cmd_script += f"ip6tables -C FORWARD -d {ip} -j DROP 2>/dev/null || ip6tables -I FORWARD 1 -d {ip} -j DROP\n"
+        cmd_script += f"ip6tables -C INPUT -d {ip} -j DROP 2>/dev/null || ip6tables -I INPUT 1 -d {ip} -j DROP\n"
 
     # Per-Company IPSET & direct rules
     for ag_id, data in agencies_map.items():
@@ -128,12 +130,15 @@ def sync_node_blacklist(node_id: int, db: Session) -> dict:
             cmd_script += f"  ipset add {set_name} {ip} -exist\n"
         cmd_script += f"  iptables -C DOCKER-USER -m set --match-set {set_name} dst -j DROP 2>/dev/null || iptables -I DOCKER-USER 1 -m set --match-set {set_name} dst -j DROP\n"
         cmd_script += f"  iptables -C FORWARD -m set --match-set {set_name} dst -j DROP 2>/dev/null || iptables -I FORWARD 1 -m set --match-set {set_name} dst -j DROP\n"
+        cmd_script += f"  iptables -C INPUT -m set --match-set {set_name} dst -j DROP 2>/dev/null || iptables -I INPUT 1 -m set --match-set {set_name} dst -j DROP\n"
         cmd_script += "fi\n"
         for ip in data["v4"]:
             cmd_script += f"iptables -C DOCKER-USER -d {ip} -j DROP 2>/dev/null || iptables -I DOCKER-USER 1 -d {ip} -j DROP\n"
             cmd_script += f"iptables -C FORWARD -d {ip} -j DROP 2>/dev/null || iptables -I FORWARD 1 -d {ip} -j DROP\n"
+            cmd_script += f"iptables -C INPUT -d {ip} -j DROP 2>/dev/null || iptables -I INPUT 1 -d {ip} -j DROP\n"
         for ip in data["v6"]:
             cmd_script += f"ip6tables -C FORWARD -d {ip} -j DROP 2>/dev/null || ip6tables -I FORWARD 1 -d {ip} -j DROP\n"
+            cmd_script += f"ip6tables -C INPUT -d {ip} -j DROP 2>/dev/null || ip6tables -I INPUT 1 -d {ip} -j DROP\n"
 
     # Try applying via SSH
     try:
