@@ -81,23 +81,34 @@ def sync_node_blacklist(node_id: int, db: Session) -> dict:
 
     # Generate SSH commands for ipset & iptables
     cmd_script = "#!/bin/bash\n"
+    cmd_script += "which ipset >/dev/null 2>&1 || (apt-get update -y && apt-get install -y ipset) || true\n"
 
     # Global IPSET
-    cmd_script += "ipset create b2b_global_block hash:net -exist\n"
-    cmd_script += "ipset flush b2b_global_block\n"
+    cmd_script += "if which ipset >/dev/null 2>&1; then\n"
+    cmd_script += "  ipset create b2b_global_block hash:net -exist\n"
+    cmd_script += "  ipset flush b2b_global_block\n"
     for ip in global_ips:
-        cmd_script += f"ipset add b2b_global_block {ip} -exist\n"
-    cmd_script += "iptables -C FORWARD -m set --match-set b2b_global_block dst -j DROP 2>/dev/null || iptables -I FORWARD -m set --match-set b2b_global_block dst -j DROP\n"
+        cmd_script += f"  ipset add b2b_global_block {ip} -exist\n"
+    cmd_script += "  iptables -C FORWARD -m set --match-set b2b_global_block dst -j DROP 2>/dev/null || iptables -I FORWARD -m set --match-set b2b_global_block dst -j DROP\n"
+    cmd_script += "fi\n"
+
+    # Direct fallback iptables rules for each IP
+    for ip in global_ips:
+        cmd_script += f"iptables -C FORWARD -d {ip} -j DROP 2>/dev/null || iptables -I FORWARD -d {ip} -j DROP\n"
 
     # Per-Company IPSET
     for ag_id, data in agencies_map.items():
         set_name = f"b2b_ag_{ag_id}_block"
-        cmd_script += f"ipset create {set_name} hash:net -exist\n"
-        cmd_script += f"ipset flush {set_name}\n"
+        cmd_script += "if which ipset >/dev/null 2>&1; then\n"
+        cmd_script += f"  ipset create {set_name} hash:net -exist\n"
+        cmd_script += f"  ipset flush {set_name}\n"
         for ip in data["ips"]:
-            cmd_script += f"ipset add {set_name} {ip} -exist\n"
-        # Apply for company subnet 10.8.X.0/24 or all company traffic
-        cmd_script += f"iptables -C FORWARD -m set --match-set {set_name} dst -j DROP 2>/dev/null || iptables -I FORWARD -m set --match-set {set_name} dst -j DROP\n"
+            cmd_script += f"  ipset add {set_name} {ip} -exist\n"
+        cmd_script += f"  iptables -C FORWARD -m set --match-set {set_name} dst -j DROP 2>/dev/null || iptables -I FORWARD -m set --match-set {set_name} dst -j DROP\n"
+        cmd_script += "fi\n"
+        # Direct fallback iptables rules
+        for ip in data["ips"]:
+            cmd_script += f"iptables -C FORWARD -d {ip} -j DROP 2>/dev/null || iptables -I FORWARD -d {ip} -j DROP\n"
 
     # Try applying via SSH
     try:
